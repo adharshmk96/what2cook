@@ -1,0 +1,22 @@
+version: "3"
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Build UI and API into a single binary
+    cmds:
+      - ./scripts/build.sh
+
+  run-dev:
+    desc: Run API and UI in development mode
+    cmds:
+      - ./scripts/run-dev.sh
+
+  stop-dev:
+    desc: Stop development API and UI processes
+    cmds:
+      - ./scripts/stop-dev.sh

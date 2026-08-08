@@ -1,0 +1,26 @@
+server:
+  # server.addr | WHAT2COOK_SERVER_ADDR
+  addr: ":8080"
+  # server.public_url | WHAT2COOK_SERVER_PUBLIC_URL
+  public_url: "http://localhost:8080"
+db:
+  # db.path | WHAT2COOK_DB_PATH
+  path: "what2cook.db"
+auth:
+  # auth.token_secret | WHAT2COOK_AUTH_TOKEN_SECRET
+  token_secret: "change-me"
+  # auth.session_ttl | WHAT2COOK_AUTH_SESSION_TTL
+  session_ttl: "168h"
+  # auth.reset_ttl | WHAT2COOK_AUTH_RESET_TTL
+  reset_ttl: "1h"
+smtp: # empty host = log reset links instead of sending email
+  # smtp.host | WHAT2COOK_SMTP_HOST
+  host: ""
+  # smtp.port | WHAT2COOK_SMTP_PORT
+  port: 587
+  # smtp.user | WHAT2COOK_SMTP_USER
+  user: ""
+  # smtp.password | WHAT2COOK_SMTP_PASSWORD
+  password: ""
+  # smtp.from | WHAT2COOK_SMTP_FROM
+  from: ""

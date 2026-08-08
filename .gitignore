@@ -1,0 +1,8 @@
+requirements/
+.dev/
+what2cook-api/what2cook
+what2cook-api/*.db
+what2cook-api/config.yaml
+what2cook-api/web/dist/**
+!what2cook-api/web/dist/.gitkeep
+what2cook-ui/dist/
