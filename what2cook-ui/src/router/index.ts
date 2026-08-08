@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import DashboardShell from '../layouts/DashboardShell.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,7 +9,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../views/HomeView.vue'),
-      meta: { requiresAuth: true },
     },
     {
       path: '/login',
@@ -35,10 +35,45 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: () => import('../views/VerifyEmailView.vue'),
+    },
+    {
       path: '/change-password',
-      name: 'change-password',
-      component: () => import('../views/ChangePasswordView.vue'),
+      redirect: { name: 'dashboard-account' },
+    },
+    {
+      path: '/dashboard',
+      component: DashboardShell,
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'dashboard',
+          redirect: { name: 'dashboard-quick-recipe' },
+        },
+        {
+          path: 'quick-recipe',
+          name: 'dashboard-quick-recipe',
+          component: () => import('../views/dashboard/QuickRecipeView.vue'),
+        },
+        {
+          path: 'inventory',
+          name: 'dashboard-inventory',
+          component: () => import('../views/dashboard/InventoryView.vue'),
+        },
+        {
+          path: 'saved-recipes',
+          name: 'dashboard-saved-recipes',
+          component: () => import('../views/dashboard/SavedRecipesView.vue'),
+        },
+        {
+          path: 'account',
+          name: 'dashboard-account',
+          component: () => import('../views/dashboard/AccountSettingsView.vue'),
+        },
+      ],
     },
     {
       path: '/:pathMatch(.*)*',
@@ -62,7 +97,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    return { name: 'home' }
+    return { name: 'dashboard' }
   }
 
   return true

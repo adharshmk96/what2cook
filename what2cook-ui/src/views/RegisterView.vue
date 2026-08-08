@@ -33,7 +33,7 @@ async function onSubmit() {
   submitting.value = true
   try {
     await auth.register(trimmedEmail, password.value)
-    await router.replace({ name: 'home' })
+    await router.replace({ name: 'dashboard' })
   } catch (err) {
     error.value = err
   } finally {

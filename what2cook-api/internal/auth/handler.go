@@ -169,6 +169,67 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// UpdateMe handles PATCH /auth/me.
+func (h *Handler) UpdateMe(c *gin.Context) {
+	userID, ok := UserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errorBody{Error: "unauthorized"})
+		return
+	}
+
+	var req UpdateEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorBody{Error: "invalid JSON body"})
+		return
+	}
+	if msg := ValidateUpdateEmail(&req); msg != "" {
+		c.JSON(http.StatusBadRequest, errorBody{Error: msg})
+		return
+	}
+
+	user, err := h.svc.UpdateEmail(userID, req.Email)
+	if err != nil {
+		h.writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, meBody{User: user})
+}
+
+// VerifyEmail handles POST /auth/verify-email.
+func (h *Handler) VerifyEmail(c *gin.Context) {
+	var req VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorBody{Error: "invalid JSON body"})
+		return
+	}
+	if msg := ValidateVerifyEmail(&req); msg != "" {
+		c.JSON(http.StatusBadRequest, errorBody{Error: msg})
+		return
+	}
+
+	user, err := h.svc.VerifyEmail(req.Token)
+	if err != nil {
+		h.writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, meBody{User: user})
+}
+
+// ResendVerification handles POST /auth/resend-verification.
+func (h *Handler) ResendVerification(c *gin.Context) {
+	userID, ok := UserIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, errorBody{Error: "unauthorized"})
+		return
+	}
+
+	if err := h.svc.ResendVerification(userID); err != nil {
+		h.writeServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, messageBody{Message: "verification email sent"})
+}
+
 func (h *Handler) writeServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidCredentials), errors.Is(err, ErrWrongPassword):
@@ -181,6 +242,10 @@ func (h *Handler) writeServiceError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, errorBody{Error: err.Error()})
 	case errors.Is(err, ErrInvalidResetToken):
 		c.JSON(http.StatusBadRequest, errorBody{Error: "invalid or expired reset token"})
+	case errors.Is(err, ErrInvalidVerifyToken):
+		c.JSON(http.StatusBadRequest, errorBody{Error: "invalid or expired verification token"})
+	case errors.Is(err, ErrEmailAlreadyVerified):
+		c.JSON(http.StatusBadRequest, errorBody{Error: "email already verified"})
 	default:
 		log.Printf("auth error: %v", err)
 		c.JSON(http.StatusInternalServerError, errorBody{Error: "internal error"})

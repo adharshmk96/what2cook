@@ -25,8 +25,11 @@ async function onSubmit() {
   submitting.value = true
   try {
     await auth.login(trimmedEmail, password.value)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    await router.replace(redirect || '/')
+    const redirect =
+      typeof route.query.redirect === 'string' && route.query.redirect
+        ? route.query.redirect
+        : '/dashboard'
+    await router.replace(redirect)
   } catch (err) {
     error.value = err
   } finally {

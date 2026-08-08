@@ -12,6 +12,7 @@ func RegisterRoutes(api *gin.RouterGroup, h *Handler, svc *Service) {
 		authGroup.POST("/login", h.Login)
 		authGroup.POST("/forgot-password", h.ForgotPassword)
 		authGroup.POST("/reset-password", h.ResetPassword)
+		authGroup.POST("/verify-email", h.VerifyEmail)
 
 		protected := authGroup.Group("")
 		protected.Use(Middleware(svc))
@@ -19,6 +20,8 @@ func RegisterRoutes(api *gin.RouterGroup, h *Handler, svc *Service) {
 			protected.POST("/logout", h.Logout)
 			protected.POST("/change-password", h.ChangePassword)
 			protected.GET("/me", h.Me)
+			protected.PATCH("/me", h.UpdateMe)
+			protected.POST("/resend-verification", h.ResendVerification)
 		}
 	}
 }

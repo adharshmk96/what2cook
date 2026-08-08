@@ -49,6 +49,7 @@ func AutoMigrate(gdb *gorm.DB) error {
 		&auth.User{},
 		&auth.Session{},
 		&auth.PasswordReset{},
+		&auth.EmailVerification{},
 	); err != nil {
 		return fmt.Errorf("auto migrate: %w", err)
 	}

@@ -153,3 +153,65 @@ func (r *Repository) MarkPasswordResetUsed(id uuid.UUID, usedAt time.Time) error
 	}
 	return nil
 }
+
+// UpdateUserEmail sets email and clears email verification.
+func (r *Repository) UpdateUserEmail(userID uuid.UUID, email string) error {
+	res := r.db.Model(&User{}).Where("id = ?", userID).Updates(map[string]any{
+		"email":             email,
+		"email_verified_at": nil,
+	})
+	if res.Error != nil {
+		return fmt.Errorf("update email: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// MarkUserEmailVerified sets email_verified_at.
+func (r *Repository) MarkUserEmailVerified(userID uuid.UUID, verifiedAt time.Time) error {
+	res := r.db.Model(&User{}).Where("id = ?", userID).Update("email_verified_at", verifiedAt)
+	if res.Error != nil {
+		return fmt.Errorf("mark email verified: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// CreateEmailVerification inserts a verification record.
+func (r *Repository) CreateEmailVerification(v *EmailVerification) error {
+	if err := r.db.Create(v).Error; err != nil {
+		return fmt.Errorf("create email verification: %w", err)
+	}
+	return nil
+}
+
+// FindValidEmailVerification finds an unused, unexpired verification by token hash.
+func (r *Repository) FindValidEmailVerification(tokenHash string, now time.Time) (*EmailVerification, error) {
+	var v EmailVerification
+	err := r.db.
+		Where("token_hash = ? AND used_at IS NULL AND expires_at > ?", tokenHash, now).
+		First(&v).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find email verification: %w", err)
+	}
+	return &v, nil
+}
+
+// MarkEmailVerificationUsed sets used_at.
+func (r *Repository) MarkEmailVerificationUsed(id uuid.UUID, usedAt time.Time) error {
+	res := r.db.Model(&EmailVerification{}).Where("id = ?", id).Update("used_at", usedAt)
+	if res.Error != nil {
+		return fmt.Errorf("mark verification used: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

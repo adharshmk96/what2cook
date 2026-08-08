@@ -52,7 +52,37 @@ echo "==> Starting UI (bun run dev)"
   echo $! >"${UI_PID_FILE}"
 )
 
+# Wait for API to compile (go run) and bind :8080.
+api_ok=0
+for _ in $(seq 1 60); do
+  if curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
+    api_ok=1
+    break
+  fi
+  if [[ -f "${API_PID_FILE}" ]] && ! kill -0 "$(cat "${API_PID_FILE}")" 2>/dev/null; then
+    # Parent may have exited after spawning the real server — keep polling briefly.
+    if ! pgrep -f "what2cook-api|go-build.*/exe/what2cook|go run .*serve" >/dev/null 2>&1; then
+      sleep 1
+      if curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
+        api_ok=1
+      fi
+      break
+    fi
+  fi
+  sleep 0.5
+done
+
+if [[ "${api_ok}" -ne 1 ]]; then
+  echo "ERROR: API failed to start on :8080. Last log lines:"
+  tail -n 20 "${API_LOG}" || true
+  echo "Tip: run task stop-dev, then task run-dev again."
+  echo "For UI changes during development use: http://localhost:5173/app/"
+  exit 1
+fi
+
 echo "==> Dev started"
 echo "  API:  http://localhost:8080  (pid=$(cat "${API_PID_FILE}"), log=${API_LOG})"
-echo "  UI:   http://localhost:5173  (pid=$(cat "${UI_PID_FILE}"), log=${UI_LOG})"
+echo "  UI:   http://localhost:5173/app/  (pid=$(cat "${UI_PID_FILE}"), log=${UI_LOG})"
+echo "  Dev UI (hot reload): http://localhost:5173/app/"
+echo "  Embedded UI (:8080/app) only updates after task build + restart"
 echo "  Stop: task stop-dev"

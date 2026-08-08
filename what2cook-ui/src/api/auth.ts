@@ -3,6 +3,8 @@ import { apiRequest } from './client'
 export type User = {
   id: string
   email: string
+  email_verified_at: string | null
+  email_verified: boolean
 }
 
 export type AuthResponse = {
@@ -24,7 +26,20 @@ function normalizeUser(raw: unknown): User {
   if (id == null || typeof email !== 'string') {
     throw new Error('Invalid user payload')
   }
-  return { id: String(id), email }
+  const verifiedRaw =
+    record.email_verified_at ?? record.EmailVerifiedAt ?? record.email_verified
+  let emailVerifiedAt: string | null = null
+  if (typeof verifiedRaw === 'string' && verifiedRaw) {
+    emailVerifiedAt = verifiedRaw
+  } else if (verifiedRaw === true) {
+    emailVerifiedAt = new Date().toISOString()
+  }
+  return {
+    id: String(id),
+    email,
+    email_verified_at: emailVerifiedAt,
+    email_verified: Boolean(emailVerifiedAt),
+  }
 }
 
 function normalizeAuthResponse(raw: unknown): AuthResponse {
@@ -38,6 +53,13 @@ function normalizeAuthResponse(raw: unknown): AuthResponse {
   }
   const userRaw = record.user ?? record.User ?? record
   return { token, user: normalizeUser(userRaw) }
+}
+
+function normalizeMeResponse(raw: unknown): User {
+  if (raw && typeof raw === 'object' && 'user' in raw) {
+    return normalizeUser((raw as { user: unknown }).user)
+  }
+  return normalizeUser(raw)
 }
 
 export async function register(
@@ -98,8 +120,27 @@ export async function changePassword(
 
 export async function fetchMe(): Promise<User> {
   const data = await apiRequest<unknown>('/auth/me', { method: 'GET' })
-  if (data && typeof data === 'object' && 'user' in data) {
-    return normalizeUser((data as { user: unknown }).user)
-  }
-  return normalizeUser(data)
+  return normalizeMeResponse(data)
+}
+
+export async function updateEmail(email: string): Promise<User> {
+  const data = await apiRequest<unknown>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({ email }),
+  })
+  return normalizeMeResponse(data)
+}
+
+export async function verifyEmail(token: string): Promise<User> {
+  const data = await apiRequest<unknown>('/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+  return normalizeMeResponse(data)
+}
+
+export async function resendVerification(): Promise<MessageResponse> {
+  return apiRequest<MessageResponse>('/auth/resend-verification', {
+    method: 'POST',
+  })
 }

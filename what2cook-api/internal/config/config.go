@@ -39,6 +39,8 @@ type AuthConfig struct {
 	SessionTTL time.Duration `mapstructure:"session_ttl"`
 	// auth.reset_ttl | WHAT2COOK_AUTH_RESET_TTL
 	ResetTTL time.Duration `mapstructure:"reset_ttl"`
+	// auth.verify_ttl | WHAT2COOK_AUTH_VERIFY_TTL
+	VerifyTTL time.Duration `mapstructure:"verify_ttl"`
 }
 
 // SMTPConfig holds outbound email settings. Empty Host = log reset links instead of sending.
@@ -76,6 +78,7 @@ func Load(cfgFile string) error {
 	v.SetDefault("auth.token_secret", "change-me")
 	v.SetDefault("auth.session_ttl", "168h")
 	v.SetDefault("auth.reset_ttl", "1h")
+	v.SetDefault("auth.verify_ttl", "24h")
 	v.SetDefault("smtp.host", "")
 	v.SetDefault("smtp.port", 587)
 	v.SetDefault("smtp.user", "")
@@ -124,6 +127,9 @@ func Load(cfgFile string) error {
 	}
 	if cfg.Auth.ResetTTL <= 0 {
 		return fmt.Errorf("auth.reset_ttl must be positive")
+	}
+	if cfg.Auth.VerifyTTL <= 0 {
+		return fmt.Errorf("auth.verify_ttl must be positive")
 	}
 
 	global = &cfg

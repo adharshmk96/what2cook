@@ -33,6 +33,16 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
+// VerifyEmailRequest is the body for POST /auth/verify-email.
+type VerifyEmailRequest struct {
+	Token string `json:"token"`
+}
+
+// UpdateEmailRequest is the body for PATCH /auth/me.
+type UpdateEmailRequest struct {
+	Email string `json:"email"`
+}
+
 // ValidateRegister checks register input shape before hitting the service.
 func ValidateRegister(req *RegisterRequest) string {
 	if strings.TrimSpace(req.Email) == "" {
@@ -90,6 +100,22 @@ func ValidateChangePassword(req *ChangePasswordRequest) string {
 	}
 	if len(req.NewPassword) < minPasswordLen {
 		return "new_password must be at least 8 characters"
+	}
+	return ""
+}
+
+// ValidateVerifyEmail checks verify-email input.
+func ValidateVerifyEmail(req *VerifyEmailRequest) string {
+	if strings.TrimSpace(req.Token) == "" {
+		return "token is required"
+	}
+	return ""
+}
+
+// ValidateUpdateEmail checks update-email input.
+func ValidateUpdateEmail(req *UpdateEmailRequest) string {
+	if strings.TrimSpace(req.Email) == "" {
+		return "email is required"
 	}
 	return ""
 }

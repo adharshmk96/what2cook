@@ -36,7 +36,7 @@ func New(cfg *config.Config, gdb *gorm.DB, mailer *mail.Mailer) (*Server, error)
 	})
 
 	repo := auth.NewRepository(gdb)
-	svc := auth.NewService(repo, mailer, cfg.Auth.TokenSecret, cfg.Auth.SessionTTL, cfg.Auth.ResetTTL)
+	svc := auth.NewService(repo, mailer, cfg.Auth.TokenSecret, cfg.Auth.SessionTTL, cfg.Auth.ResetTTL, cfg.Auth.VerifyTTL)
 	h := auth.NewHandler(svc)
 
 	api := r.Group("/api/v1")

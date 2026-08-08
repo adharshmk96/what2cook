@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -21,14 +22,16 @@ const (
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrEmailTaken         = errors.New("email already registered")
-	ErrWeakPassword       = errors.New("password too weak")
-	ErrInvalidEmail       = errors.New("invalid email")
-	ErrUnauthorized       = errors.New("unauthorized")
-	ErrWrongPassword      = errors.New("wrong password")
-	ErrInvalidResetToken  = errors.New("invalid or expired reset token")
+	ErrInvalidCredentials   = errors.New("invalid credentials")
+	ErrInvalidToken         = errors.New("invalid token")
+	ErrEmailTaken           = errors.New("email already registered")
+	ErrWeakPassword         = errors.New("password too weak")
+	ErrInvalidEmail         = errors.New("invalid email")
+	ErrUnauthorized         = errors.New("unauthorized")
+	ErrWrongPassword        = errors.New("wrong password")
+	ErrInvalidResetToken    = errors.New("invalid or expired reset token")
+	ErrInvalidVerifyToken   = errors.New("invalid or expired verification token")
+	ErrEmailAlreadyVerified = errors.New("email already verified")
 )
 
 // tokenPayload is the unsigned JSON body of an opaque auth token.
@@ -37,28 +40,31 @@ type tokenPayload struct {
 	SessionID string `json:"sessionId"`
 }
 
-// ResetMailer sends password-reset links.
-type ResetMailer interface {
+// AuthMailer sends password-reset and email-verification links.
+type AuthMailer interface {
 	SendPasswordReset(toEmail, rawToken string) error
+	SendEmailVerification(toEmail, rawToken string) error
 }
 
 // Service contains auth business logic.
 type Service struct {
 	repo        *Repository
-	mailer      ResetMailer
+	mailer      AuthMailer
 	tokenSecret []byte
 	sessionTTL  time.Duration
 	resetTTL    time.Duration
+	verifyTTL   time.Duration
 }
 
 // NewService creates an auth service.
-func NewService(repo *Repository, mailer ResetMailer, tokenSecret string, sessionTTL, resetTTL time.Duration) *Service {
+func NewService(repo *Repository, mailer AuthMailer, tokenSecret string, sessionTTL, resetTTL, verifyTTL time.Duration) *Service {
 	return &Service{
 		repo:        repo,
 		mailer:      mailer,
 		tokenSecret: []byte(tokenSecret),
 		sessionTTL:  sessionTTL,
 		resetTTL:    resetTTL,
+		verifyTTL:   verifyTTL,
 	}
 }
 
@@ -68,7 +74,7 @@ type AuthResult struct {
 	User  *User  `json:"user"`
 }
 
-// Register creates a user and session.
+// Register creates a user, sends a verification email (best-effort), and issues a session.
 func (s *Service) Register(email, password string) (*AuthResult, error) {
 	email, err := normalizeEmail(email)
 	if err != nil {
@@ -92,6 +98,10 @@ func (s *Service) Register(email, password string) (*AuthResult, error) {
 	user := &User{Email: email, PasswordHash: string(hash)}
 	if err := s.repo.CreateUser(user); err != nil {
 		return nil, err
+	}
+
+	if err := s.sendVerificationEmail(user); err != nil {
+		log.Printf("send verification after register for %s: %v", user.Email, err)
 	}
 
 	return s.issueSession(user)
@@ -134,6 +144,109 @@ func (s *Service) Me(userID uuid.UUID) (*User, error) {
 		return nil, ErrUnauthorized
 	}
 	return user, err
+}
+
+// UpdateEmail changes the user's email, clears verification, and sends a new verify link.
+func (s *Service) UpdateEmail(userID uuid.UUID, newEmail string) (*User, error) {
+	email, err := normalizeEmail(newEmail)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repo.FindUserByID(userID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, ErrUnauthorized
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if email == user.Email {
+		return user, nil
+	}
+
+	if existing, err := s.repo.FindUserByEmail(email); err == nil && existing.ID != userID {
+		return nil, ErrEmailTaken
+	} else if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, err
+	}
+
+	if err := s.repo.UpdateUserEmail(userID, email); err != nil {
+		return nil, err
+	}
+
+	user.Email = email
+	user.EmailVerifiedAt = nil
+
+	if err := s.sendVerificationEmail(user); err != nil {
+		log.Printf("send verification after email update for %s: %v", user.Email, err)
+	}
+
+	return user, nil
+}
+
+// VerifyEmail consumes a verification token and marks the user's email verified.
+func (s *Service) VerifyEmail(rawToken string) (*User, error) {
+	if strings.TrimSpace(rawToken) == "" {
+		return nil, ErrInvalidVerifyToken
+	}
+
+	tokenHash := hashToken(rawToken)
+	v, err := s.repo.FindValidEmailVerification(tokenHash, time.Now().UTC())
+	if errors.Is(err, ErrNotFound) {
+		return nil, ErrInvalidVerifyToken
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	if err := s.repo.MarkUserEmailVerified(v.UserID, now); err != nil {
+		return nil, err
+	}
+	if err := s.repo.MarkEmailVerificationUsed(v.ID, now); err != nil {
+		return nil, err
+	}
+
+	user, err := s.repo.FindUserByID(v.UserID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, ErrInvalidVerifyToken
+	}
+	return user, err
+}
+
+// ResendVerification sends a new verification email when the account is unverified.
+func (s *Service) ResendVerification(userID uuid.UUID) error {
+	user, err := s.repo.FindUserByID(userID)
+	if errors.Is(err, ErrNotFound) {
+		return ErrUnauthorized
+	}
+	if err != nil {
+		return err
+	}
+	if user.EmailVerified() {
+		return ErrEmailAlreadyVerified
+	}
+	return s.sendVerificationEmail(user)
+}
+
+func (s *Service) sendVerificationEmail(user *User) error {
+	rawToken, err := randomToken(32)
+	if err != nil {
+		return err
+	}
+	v := &EmailVerification{
+		UserID:    user.ID,
+		TokenHash: hashToken(rawToken),
+		ExpiresAt: time.Now().UTC().Add(s.verifyTTL),
+	}
+	if err := s.repo.CreateEmailVerification(v); err != nil {
+		return err
+	}
+	if err := s.mailer.SendEmailVerification(user.Email, rawToken); err != nil {
+		return fmt.Errorf("send verification mail: %w", err)
+	}
+	return nil
 }
 
 // ForgotPassword creates a reset token and emails/logs the link. Always succeeds for unknown emails (no enumeration).

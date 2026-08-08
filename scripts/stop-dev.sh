@@ -74,4 +74,27 @@ stop_pid() {
 stop_pid "API" "${API_PID_FILE}"
 stop_pid "UI" "${UI_PID_FILE}"
 
+# Free ports left behind by orphan binaries (e.g. ./what2cook from task build).
+free_port() {
+  local port="$1"
+  local pids
+  pids="$(lsof -nP -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true)"
+  if [[ -z "${pids}" ]]; then
+    return 0
+  fi
+  echo "==> Freeing port ${port}: ${pids}"
+  local pid
+  for pid in ${pids}; do
+    kill_tree "${pid}"
+  done
+  sleep 0.3
+  pids="$(lsof -nP -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true)"
+  for pid in ${pids}; do
+    force_kill_tree "${pid}"
+  done
+}
+
+free_port 8080
+free_port 5173
+
 echo "==> Dev processes stopped"

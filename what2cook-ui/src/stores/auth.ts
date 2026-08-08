@@ -105,6 +105,46 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateEmail(email: string) {
+    loading.value = true
+    try {
+      user.value = await authApi.updateEmail(email)
+      return user.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function verifyEmail(tokenValue: string) {
+    loading.value = true
+    try {
+      const nextUser = await authApi.verifyEmail(tokenValue)
+      if (token.value) {
+        user.value = nextUser
+      }
+      return nextUser
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resendVerification() {
+    loading.value = true
+    try {
+      return await authApi.resendVerification()
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function refreshMe() {
+    if (!token.value) {
+      return null
+    }
+    user.value = await authApi.fetchMe()
+    return user.value
+  }
+
   return {
     token,
     user,
@@ -116,6 +156,10 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     changePassword,
+    updateEmail,
+    verifyEmail,
+    resendVerification,
+    refreshMe,
     clearSession,
   }
 })
