@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import Breadcrumb from '../components/Breadcrumb.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 
 const navItems = [
@@ -11,6 +13,16 @@ const navItems = [
   { name: 'dashboard-saved-recipes', label: 'Saved Recipes' },
   { name: 'dashboard-account', label: 'Account' },
 ] as const
+
+function isNavActive(name: (typeof navItems)[number]['name']) {
+  if (name === 'dashboard-quick-recipe') {
+    return (
+      route.name === 'dashboard-quick-recipe' ||
+      route.name === 'dashboard-quick-recipe-results'
+    )
+  }
+  return route.name === name
+}
 
 async function onLogout() {
   await auth.logout()
@@ -31,6 +43,9 @@ async function onLogout() {
           v-for="item in navItems"
           :key="item.name"
           class="dash-nav__link"
+          :class="{ 'router-link-active': isNavActive(item.name) }"
+          active-class=""
+          exact-active-class=""
           :to="{ name: item.name }"
         >
           {{ item.label }}
@@ -54,12 +69,16 @@ async function onLogout() {
           v-for="item in navItems"
           :key="item.name"
           class="dash-nav__link"
+          :class="{ 'router-link-active': isNavActive(item.name) }"
+          active-class=""
+          exact-active-class=""
           :to="{ name: item.name }"
         >
           {{ item.label }}
         </RouterLink>
       </nav>
       <main class="dash-content">
+        <Breadcrumb />
         <RouterView />
       </main>
     </div>

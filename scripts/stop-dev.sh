@@ -2,99 +2,49 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEV_DIR="${ROOT_DIR}/.dev"
-API_PID_FILE="${DEV_DIR}/api.pid"
-UI_PID_FILE="${DEV_DIR}/ui.pid"
+SERVER_PID_FILE="${ROOT_DIR}/.dev/server.pid"
+LEGACY_SERVER_PID_FILE="${ROOT_DIR}/.dev/api.pid"
 
-# Kill pid and all descendants (covers go run / bun child processes).
-kill_tree() {
-  local pid="$1"
-  local kids
-  kids="$(pgrep -P "${pid}" 2>/dev/null || true)"
-  local kid
-  for kid in ${kids}; do
-    kill_tree "${kid}"
-  done
-  kill "${pid}" 2>/dev/null || true
-}
-
-force_kill_tree() {
-  local pid="$1"
-  local kids
-  kids="$(pgrep -P "${pid}" 2>/dev/null || true)"
-  local kid
-  for kid in ${kids}; do
-    force_kill_tree "${kid}"
-  done
-  kill -9 "${pid}" 2>/dev/null || true
-}
-
-stop_pid() {
-  local name="$1"
-  local pid_file="$2"
+stop_server() {
+  local pid_file="$1"
 
   if [[ ! -f "${pid_file}" ]]; then
-    echo "==> ${name}: not running (no pid file)"
-    return 0
+    return 1
   fi
 
   local pid
   pid="$(cat "${pid_file}")"
-  if [[ -z "${pid}" ]]; then
-    echo "==> ${name}: empty pid file, removing"
+  if [[ -z "${pid}" ]] || ! kill -0 "${pid}" 2>/dev/null; then
     rm -f "${pid_file}"
-    return 0
+    return 1
   fi
 
-  if ! kill -0 "${pid}" 2>/dev/null; then
-    echo "==> ${name}: stale pid ${pid}, removing"
-    rm -f "${pid_file}"
-    return 0
-  fi
+  echo "==> Stopping server pid ${pid}"
 
-  echo "==> ${name}: stopping pid ${pid}"
-  kill_tree "${pid}"
+  # Legacy `go run` uses a child process for the compiled server.
+  local child_pids
+  child_pids="$(pgrep -P "${pid}" 2>/dev/null || true)"
+  kill ${child_pids} "${pid}" 2>/dev/null || true
 
-  local i
-  for i in 1 2 3 4 5; do
+  for _ in 1 2 3 4 5; do
     if ! kill -0 "${pid}" 2>/dev/null; then
       rm -f "${pid_file}"
-      echo "==> ${name}: stopped"
+      echo "==> Server stopped"
       return 0
     fi
     sleep 0.4
   done
 
-  echo "==> ${name}: still alive, force killing"
-  force_kill_tree "${pid}"
+  echo "==> Server still running; force stopping pid ${pid}"
+  kill -9 ${child_pids} "${pid}" 2>/dev/null || true
   rm -f "${pid_file}"
-  echo "==> ${name}: force stopped"
+  echo "==> Server stopped"
 }
 
-stop_pid "API" "${API_PID_FILE}"
-stop_pid "UI" "${UI_PID_FILE}"
+stopped=0
+stop_server "${SERVER_PID_FILE}" && stopped=1
+stop_server "${LEGACY_SERVER_PID_FILE}" && stopped=1
 
-# Free ports left behind by orphan binaries (e.g. ./what2cook from task build).
-free_port() {
-  local port="$1"
-  local pids
-  pids="$(lsof -nP -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true)"
-  if [[ -z "${pids}" ]]; then
-    return 0
-  fi
-  echo "==> Freeing port ${port}: ${pids}"
-  local pid
-  for pid in ${pids}; do
-    kill_tree "${pid}"
-  done
-  sleep 0.3
-  pids="$(lsof -nP -tiTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true)"
-  for pid in ${pids}; do
-    force_kill_tree "${pid}"
-  done
-}
-
-free_port 8080
-free_port 5173
-
-echo "==> Dev processes stopped"
+if [[ "${stopped}" -eq 0 ]]; then
+  echo "==> Server not running"
+fi

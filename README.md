@@ -44,21 +44,22 @@ Forgot-password reset links are logged when SMTP is unset.
 
 ## Dev
 
-Start API + Vite UI together:
+Stop any previous development server, build the UI and API, then start the
+single server binary:
 
 ```bash
 task run-dev
 ```
 
-Stop them:
+Stop the server:
 
 ```bash
 task stop-dev
 ```
 
-- API: http://localhost:8080
-- UI (Vite): http://localhost:5173 (proxies `/api` → `:8080`)
-- Logs/pids: `.dev/`
+- App: http://localhost:8080/app/
+- API: http://localhost:8080/api/v1/...
+- Log/PID: `.dev/server.log` and `.dev/server.pid`
 
 ## Layout
 

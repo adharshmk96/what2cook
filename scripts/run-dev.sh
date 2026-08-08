@@ -4,85 +4,48 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEV_DIR="${ROOT_DIR}/.dev"
 API_DIR="${ROOT_DIR}/what2cook-api"
-UI_DIR="${ROOT_DIR}/what2cook-ui"
-API_PID_FILE="${DEV_DIR}/api.pid"
-UI_PID_FILE="${DEV_DIR}/ui.pid"
-API_LOG="${DEV_DIR}/api.log"
-UI_LOG="${DEV_DIR}/ui.log"
+SERVER_PID_FILE="${DEV_DIR}/server.pid"
+SERVER_LOG="${DEV_DIR}/server.log"
 
-is_running() {
-  local pid_file="$1"
-  if [[ ! -f "${pid_file}" ]]; then
-    return 1
-  fi
-  local pid
-  pid="$(cat "${pid_file}")"
-  if [[ -z "${pid}" ]]; then
-    return 1
-  fi
-  kill -0 "${pid}" 2>/dev/null
-}
+echo "==> Stopping previous server"
+"${ROOT_DIR}/scripts/stop-dev.sh"
 
-if is_running "${API_PID_FILE}" || is_running "${UI_PID_FILE}"; then
-  echo "Dev processes already running:"
-  if is_running "${API_PID_FILE}"; then
-    echo "  API pid=$(cat "${API_PID_FILE}") (log: ${API_LOG})"
-  fi
-  if is_running "${UI_PID_FILE}"; then
-    echo "  UI  pid=$(cat "${UI_PID_FILE}") (log: ${UI_LOG})"
-  fi
-  echo "Stop them first with: task stop-dev (or ./scripts/stop-dev.sh)"
-  exit 1
-fi
+echo "==> Building UI and server"
+"${ROOT_DIR}/scripts/build.sh"
 
 mkdir -p "${DEV_DIR}"
-rm -f "${API_PID_FILE}" "${UI_PID_FILE}"
 
-echo "==> Starting API (go run . serve)"
+echo "==> Starting server"
 (
   cd "${API_DIR}"
-  nohup go run . serve >"${API_LOG}" 2>&1 &
-  echo $! >"${API_PID_FILE}"
+  nohup ./what2cook serve >"${SERVER_LOG}" 2>&1 &
+  echo $! >"${SERVER_PID_FILE}"
 )
 
-echo "==> Starting UI (bun run dev)"
-(
-  cd "${UI_DIR}"
-  nohup bun run dev >"${UI_LOG}" 2>&1 &
-  echo $! >"${UI_PID_FILE}"
-)
-
-# Wait for API to compile (go run) and bind :8080.
-api_ok=0
-for _ in $(seq 1 60); do
-  if curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
-    api_ok=1
+server_ok=0
+for _ in $(seq 1 40); do
+  if ! kill -0 "$(cat "${SERVER_PID_FILE}")" 2>/dev/null; then
     break
   fi
-  if [[ -f "${API_PID_FILE}" ]] && ! kill -0 "$(cat "${API_PID_FILE}")" 2>/dev/null; then
-    # Parent may have exited after spawning the real server — keep polling briefly.
-    if ! pgrep -f "what2cook-api|go-build.*/exe/what2cook|go run .*serve" >/dev/null 2>&1; then
-      sleep 1
-      if curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
-        api_ok=1
-      fi
-      break
-    fi
+
+  if curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; then
+    server_ok=1
+    break
   fi
-  sleep 0.5
+
+  sleep 0.25
 done
 
-if [[ "${api_ok}" -ne 1 ]]; then
-  echo "ERROR: API failed to start on :8080. Last log lines:"
-  tail -n 20 "${API_LOG}" || true
-  echo "Tip: run task stop-dev, then task run-dev again."
-  echo "For UI changes during development use: http://localhost:5173/app/"
+if [[ "${server_ok}" -ne 1 ]]; then
+  echo "ERROR: Server failed to start on :8080. Last log lines:"
+  tail -n 20 "${SERVER_LOG}" || true
+  "${ROOT_DIR}/scripts/stop-dev.sh"
   exit 1
 fi
 
-echo "==> Dev started"
-echo "  API:  http://localhost:8080  (pid=$(cat "${API_PID_FILE}"), log=${API_LOG})"
-echo "  UI:   http://localhost:5173/app/  (pid=$(cat "${UI_PID_FILE}"), log=${UI_LOG})"
-echo "  Dev UI (hot reload): http://localhost:5173/app/"
-echo "  Embedded UI (:8080/app) only updates after task build + restart"
+echo "==> Server started"
+echo "  App:  http://localhost:8080/app/"
+echo "  API:  http://localhost:8080/api/v1/"
+echo "  PID:  $(cat "${SERVER_PID_FILE}")"
+echo "  Log:  ${SERVER_LOG}"
 echo "  Stop: task stop-dev"

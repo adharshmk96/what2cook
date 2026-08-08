@@ -12,11 +12,11 @@ tasks:
       - ./scripts/build.sh
 
   run-dev:
-    desc: Run API and UI in development mode
+    desc: Build and run the server with embedded UI
     cmds:
       - ./scripts/run-dev.sh
 
   stop-dev:
-    desc: Stop development API and UI processes
+    desc: Stop the development server
     cmds:
       - ./scripts/stop-dev.sh

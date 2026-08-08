@@ -17,6 +17,7 @@ import (
 	"what2cook-api/internal/auth"
 	"what2cook-api/internal/config"
 	"what2cook-api/internal/mail"
+	"what2cook-api/internal/recipe"
 	"what2cook-api/web"
 )
 
@@ -36,11 +37,15 @@ func New(cfg *config.Config, gdb *gorm.DB, mailer *mail.Mailer) (*Server, error)
 	})
 
 	repo := auth.NewRepository(gdb)
-	svc := auth.NewService(repo, mailer, cfg.Auth.TokenSecret, cfg.Auth.SessionTTL, cfg.Auth.ResetTTL, cfg.Auth.VerifyTTL)
-	h := auth.NewHandler(svc)
+	authSvc := auth.NewService(repo, mailer, cfg.Auth.TokenSecret, cfg.Auth.SessionTTL, cfg.Auth.ResetTTL, cfg.Auth.VerifyTTL)
+	authHandler := auth.NewHandler(authSvc)
+
+	recipeSvc := recipe.NewService()
+	recipeHandler := recipe.NewHandler(recipeSvc)
 
 	api := r.Group("/api/v1")
-	auth.RegisterRoutes(api, h, svc)
+	auth.RegisterRoutes(api, authHandler, authSvc)
+	recipe.RegisterRoutes(api, recipeHandler, authSvc)
 
 	if err := mountUI(r); err != nil {
 		return nil, err

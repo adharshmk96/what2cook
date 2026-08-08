@@ -57,21 +57,44 @@ const router = createRouter({
           path: 'quick-recipe',
           name: 'dashboard-quick-recipe',
           component: () => import('../views/dashboard/QuickRecipeView.vue'),
+          meta: {
+            breadcrumb: [{ label: 'Quick Recipe' }],
+          },
+        },
+        {
+          path: 'quick-recipe/results',
+          name: 'dashboard-quick-recipe-results',
+          component: () => import('../views/dashboard/RecipeResultsView.vue'),
+          meta: {
+            breadcrumb: [
+              { label: 'Quick Recipe', name: 'dashboard-quick-recipe' },
+              { label: 'Results' },
+            ],
+          },
         },
         {
           path: 'inventory',
           name: 'dashboard-inventory',
           component: () => import('../views/dashboard/InventoryView.vue'),
+          meta: {
+            breadcrumb: [{ label: 'Inventory' }],
+          },
         },
         {
           path: 'saved-recipes',
           name: 'dashboard-saved-recipes',
           component: () => import('../views/dashboard/SavedRecipesView.vue'),
+          meta: {
+            breadcrumb: [{ label: 'Saved Recipes' }],
+          },
         },
         {
           path: 'account',
           name: 'dashboard-account',
           component: () => import('../views/dashboard/AccountSettingsView.vue'),
+          meta: {
+            breadcrumb: [{ label: 'Account' }],
+          },
         },
       ],
     },
