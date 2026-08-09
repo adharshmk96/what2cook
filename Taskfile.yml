@@ -6,6 +6,11 @@ tasks:
     cmds:
       - task --list
 
+  init:
+    desc: Install dependencies and seed local config
+    cmds:
+      - ./scripts/init.sh
+
   build:
     desc: Build UI and API into a single binary
     cmds:

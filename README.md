@@ -8,6 +8,16 @@ Single-binary recipe app: Go API (`what2cook-api`) + Vue UI (`what2cook-ui`) emb
 - [Bun](https://bun.sh/) (UI build)
 - [Task](https://taskfile.dev/) (`task`) for ops scripts
 
+## Setup
+
+From the repo root (requires Go + Bun):
+
+```bash
+task init
+```
+
+This installs Go modules and UI deps, and creates `what2cook-api/config.yaml` from the example if missing.
+
 ## Build
 
 From the repo root:
@@ -65,7 +75,7 @@ task stop-dev
 
 ```
 what2cook/
-  Taskfile.yml          # task build / run-dev / stop-dev
+  Taskfile.yml          # task init / build / run-dev / stop-dev
   scripts/              # ops scripts invoked by Task
   Makefile              # make build / make run
   what2cook-api/        # Gin + GORM + embed
