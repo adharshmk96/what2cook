@@ -5,7 +5,7 @@
 #   - Shared Traefik stack (entrypoints web/websecure, certresolver le)
 #
 # Deploy (from deploy.sh, or on the VPS):
-#   DOMAIN=what2cook.example.com IMAGE_API=ghcr.io/.../what2cook-api:tag \
+#   DOMAIN=what2cook.example.com IMAGE_API=ghcr.io/adharshmk96/what2cook/what2cook-api:tag \
 #   WHAT2COOK_AUTH_TOKEN_SECRET=... \
 #     docker stack deploy -c stack.yaml what2cook
 

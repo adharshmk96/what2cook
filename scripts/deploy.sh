@@ -45,6 +45,11 @@ if [[ -z "${IMAGE_API}" ]]; then
 fi
 [[ "${IMAGE_API}" =~ ^[a-zA-Z0-9./:_-]+$ ]] || fail "IMAGE_API contains unsupported characters"
 [[ "${APP_VERSION}" =~ ^[a-zA-Z0-9._+-]+$ ]] || fail "app version contains unsupported characters"
+if [[ "${DEPLOY_MODE}" == "pull" && "${IMAGE_API}" == ghcr.io/* ]]; then
+  [[ -n "${REGISTRY_USER}" ]] || fail "REGISTRY_USER is required to pull from ghcr.io"
+  [[ -n "${REGISTRY_TOKEN}" ]] || fail "REGISTRY_TOKEN is required to pull from ghcr.io"
+fi
+
 
 # ServerAliveInterval keeps the TCP session alive through intermediate NAT while
 # a long, silent remote build runs; without it the connection is dropped and ssh
