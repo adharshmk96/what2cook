@@ -52,4 +52,4 @@ fi
 echo "==> Init complete — ready to run"
 echo "  Dev:   task run-dev"
 echo "  Build: task build"
-echo "  App:   http://localhost:8080/app/"
+echo "  App:   http://localhost:8080/"

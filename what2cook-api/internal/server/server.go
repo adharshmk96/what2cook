@@ -75,15 +75,22 @@ func mountUI(r *gin.Engine) error {
 		return fmt.Errorf("embedded UI missing index.html — run `make build` from repo root: %w", err)
 	}
 
-	r.GET("/app", func(c *gin.Context) {
-		c.Redirect(http.StatusFound, "/app/")
-	})
-	// Static assets + SPA fallback under /app; /api/v1 is registered separately.
-	// Avoid http.FileServer: it redirects */index.html → ./ which loops under /app.
-	r.GET("/app/*filepath", func(c *gin.Context) {
-		rel := strings.TrimPrefix(c.Param("filepath"), "/")
-		if rel == "" || strings.HasSuffix(rel, "/") || !uiFileExists(uiFS, rel) {
-			rel = "index.html"
+	serveIndex := func(c *gin.Context) {
+		if err := serveUIFile(c, uiFS, "index.html"); err != nil {
+			log.Printf("serve UI index.html: %v", err)
+			c.Status(http.StatusInternalServerError)
+		}
+	}
+
+	// Landing at /
+	r.GET("/", serveIndex)
+
+	// Static assets at root (Vite base /)
+	r.GET("/assets/*filepath", func(c *gin.Context) {
+		rel := path.Join("assets", strings.TrimPrefix(c.Param("filepath"), "/"))
+		if !uiFileExists(uiFS, rel) {
+			c.Status(http.StatusNotFound)
+			return
 		}
 		if err := serveUIFile(c, uiFS, rel); err != nil {
 			log.Printf("serve UI %q: %v", rel, err)
@@ -91,7 +98,36 @@ func mountUI(r *gin.Engine) error {
 		}
 	})
 
-	log.Printf("UI mount ready at /app (embed: web/dist)")
+	// Old landing → /
+	r.GET("/app", func(c *gin.Context) {
+		c.Redirect(http.StatusFound, "/")
+	})
+
+	// SPA fallback under /app/* (login, dashboard, …); /api/v1 is registered separately.
+	// Avoid http.FileServer: it redirects */index.html → ./ which loops under /app.
+	r.GET("/app/*filepath", func(c *gin.Context) {
+		rel := strings.TrimPrefix(c.Param("filepath"), "/")
+		if rel == "" {
+			c.Redirect(http.StatusFound, "/")
+			return
+		}
+		serveIndex(c)
+	})
+
+	// Other dist root files (favicon, vite.svg, etc.)
+	r.GET("/:file", func(c *gin.Context) {
+		name := c.Param("file")
+		if !uiFileExists(uiFS, name) {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		if err := serveUIFile(c, uiFS, name); err != nil {
+			log.Printf("serve UI %q: %v", name, err)
+			c.Status(http.StatusInternalServerError)
+		}
+	})
+
+	log.Printf("UI mount ready at / (embed: web/dist); app routes under /app/*")
 	return nil
 }
 

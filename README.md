@@ -1,6 +1,6 @@
 # what2cook
 
-Single-binary recipe app: Go API (`what2cook-api`) + Vue UI (`what2cook-ui`) embedded at `/app`.
+Single-binary recipe app: Go API (`what2cook-api`) + Vue UI (`what2cook-ui`) embedded at `/` (app routes under `/app`).
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ Or in one step after config exists:
 make run
 ```
 
-- UI: http://localhost:8080/app/
+- UI: http://localhost:8080/
 - API: http://localhost:8080/api/v1/...
 - Health: http://localhost:8080/healthz
 
@@ -67,7 +67,7 @@ Stop the server:
 task stop-dev
 ```
 
-- App: http://localhost:8080/app/
+- App: http://localhost:8080/
 - API: http://localhost:8080/api/v1/...
 - Log/PID: `.dev/server.log` and `.dev/server.pid`
 
@@ -79,5 +79,5 @@ what2cook/
   scripts/              # ops scripts invoked by Task
   Makefile              # make build / make run
   what2cook-api/        # Gin + GORM + embed
-  what2cook-ui/         # Vue 3 + Vite (base /app/)
+  what2cook-ui/         # Vue 3 + Vite (base /; app routes /app/*)
 ```

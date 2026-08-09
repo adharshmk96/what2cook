@@ -1,6 +1,6 @@
 # what2cook-api
 
-Go API with the Vue UI embedded under `/app`.
+Go API with the Vue UI embedded at `/` (SPA routes under `/app`).
 
 ## Build (from repo root)
 
@@ -19,6 +19,7 @@ cp config.yaml.example config.yaml
 
 - `GET /healthz`
 - ` /api/v1/auth/*` — auth API
-- `/app/` — embedded SPA (SPA fallback for `/app/*`)
+- `/` — landing (embedded SPA)
+- `/app/*` — SPA fallback for login, dashboard, etc.
 
 Config: `config.yaml` or env `WHAT2COOK_*` (see `config.yaml.example`).

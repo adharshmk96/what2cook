@@ -11,40 +11,48 @@ const router = createRouter({
       component: () => import('../views/HomeView.vue'),
     },
     {
-      path: '/login',
+      path: '/app',
+      redirect: '/',
+    },
+    {
+      path: '/app/',
+      redirect: '/',
+    },
+    {
+      path: '/app/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
       meta: { guestOnly: true },
     },
     {
-      path: '/register',
+      path: '/app/register',
       name: 'register',
       component: () => import('../views/RegisterView.vue'),
       meta: { guestOnly: true },
     },
     {
-      path: '/forgot-password',
+      path: '/app/forgot-password',
       name: 'forgot-password',
       component: () => import('../views/ForgotPasswordView.vue'),
       meta: { guestOnly: true },
     },
     {
-      path: '/reset-password',
+      path: '/app/reset-password',
       name: 'reset-password',
       component: () => import('../views/ResetPasswordView.vue'),
       meta: { guestOnly: true },
     },
     {
-      path: '/verify-email',
+      path: '/app/verify-email',
       name: 'verify-email',
       component: () => import('../views/VerifyEmailView.vue'),
     },
     {
-      path: '/change-password',
+      path: '/app/change-password',
       redirect: { name: 'dashboard-account' },
     },
     {
-      path: '/dashboard',
+      path: '/app/dashboard',
       component: DashboardShell,
       meta: { requiresAuth: true },
       children: [

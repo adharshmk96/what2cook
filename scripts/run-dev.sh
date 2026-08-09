@@ -44,7 +44,7 @@ if [[ "${server_ok}" -ne 1 ]]; then
 fi
 
 echo "==> Server started"
-echo "  App:  http://localhost:8080/app/"
+echo "  App:  http://localhost:8080/"
 echo "  API:  http://localhost:8080/api/v1/"
 echo "  PID:  $(cat "${SERVER_PID_FILE}")"
 echo "  Log:  ${SERVER_LOG}"

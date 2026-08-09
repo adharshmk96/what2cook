@@ -28,7 +28,7 @@ async function onSubmit() {
     const redirect =
       typeof route.query.redirect === 'string' && route.query.redirect
         ? route.query.redirect
-        : '/dashboard'
+        : '/app/dashboard'
     await router.replace(redirect)
   } catch (err) {
     error.value = err
