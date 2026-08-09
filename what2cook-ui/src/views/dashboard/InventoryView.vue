@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import {
+  ChefHat,
+  ClipboardCopy,
+  ListPlus,
+  Package,
+  Pencil,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+} from 'lucide-vue-next'
 import FormError from '../../components/FormError.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
 import { parseInventoryCsv } from '../../lib/parseInventoryCsv'
@@ -133,6 +143,7 @@ async function onCopyPrompt() {
       quantity: item.quantity,
     })),
     dish.value,
+    'inventory',
   )
   try {
     await navigator.clipboard.writeText(prompt)
@@ -156,13 +167,17 @@ onMounted(() => {
 
 <template>
   <section class="dash-panel inventory" aria-labelledby="inventory-title">
-    <h1 id="inventory-title" class="dash-panel__title">Inventory</h1>
+    <h1 id="inventory-title" class="dash-panel__title inventory-title">
+      <Package class="icon icon--lg" aria-hidden="true" />
+      Inventory
+    </h1>
     <p class="dash-panel__desc">
       Track pantry ingredients and quantities, then copy a prompt for an AI cook.
     </p>
 
     <label class="inventory-quick-toggle">
       <input v-model="quickAdd" type="checkbox" />
+      <ListPlus class="icon icon--sm" aria-hidden="true" />
       <span>Quick add</span>
     </label>
 
@@ -198,6 +213,7 @@ onMounted(() => {
         type="submit"
         :disabled="store.loading || store.saving || !newName.trim()"
       >
+        <Plus class="icon" aria-hidden="true" />
         Add
       </button>
     </form>
@@ -222,6 +238,7 @@ onMounted(() => {
         type="submit"
         :disabled="store.loading || store.saving || !quickAddText.trim()"
       >
+        <Plus class="icon" aria-hidden="true" />
         Add
       </button>
     </form>
@@ -319,6 +336,7 @@ onMounted(() => {
                 :disabled="store.saving"
                 @click="startEdit(item)"
               >
+                <Pencil class="icon icon--sm" aria-hidden="true" />
                 Edit
               </button>
               <button
@@ -327,13 +345,17 @@ onMounted(() => {
                 :disabled="store.saving"
                 @click="onDelete(item)"
               >
+                <Trash2 class="icon icon--sm" aria-hidden="true" />
                 Delete
               </button>
             </div>
           </template>
         </li>
       </ul>
-      <p v-else class="inventory-empty">No ingredients yet — add your first above.</p>
+      <p v-else class="inventory-empty">
+        <ShoppingBasket class="icon icon--lg" aria-hidden="true" />
+        <span>No ingredients yet — add your first above.</span>
+      </p>
     </template>
 
     <label class="field inventory-dish">
@@ -349,6 +371,7 @@ onMounted(() => {
 
     <div class="inventory-actions">
       <button class="btn-primary" type="button" disabled title="Coming soon">
+        <ChefHat class="icon" aria-hidden="true" />
         Generate recipe — Coming soon
       </button>
       <button
@@ -357,6 +380,7 @@ onMounted(() => {
         :disabled="!canCopy"
         @click="onCopyPrompt"
       >
+        <ClipboardCopy class="icon" aria-hidden="true" />
         Copy prompt
       </button>
     </div>

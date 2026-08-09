@@ -295,6 +295,9 @@ input {
 }
 
 .ingredient-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   align-self: flex-start;
   border: 1px solid rgba(15, 122, 95, 0.14);
   border-radius: 999px;
@@ -311,7 +314,7 @@ input {
 }
 
 .ingredient-list span {
-  margin-left: 0.35rem;
+  margin-left: 0.1rem;
   opacity: 0.65;
 }
 
@@ -502,8 +505,29 @@ input {
   color: rgba(77, 99, 90, 0.65);
 }
 
+.icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.icon--sm {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.icon--lg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
 .btn-primary,
 .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   border: none;
   cursor: pointer;
   border-radius: 10px;
@@ -753,7 +777,9 @@ input {
 }
 
 .dash-nav__link {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   border-radius: 12px;
   padding: 0.7rem 0.85rem;
   color: var(--ink);
@@ -825,13 +851,6 @@ input {
 }
 
 .dash-user-chevron {
-  width: 1rem;
-  height: 1rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
   transition: transform 160ms ease;
 }
 
@@ -1066,6 +1085,12 @@ input {
   margin-top: 1.35rem;
 }
 
+.quick-recipe-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
 .quick-recipe__badges {
   min-height: 3.2rem;
   padding: 0.85rem 0 0.35rem;
@@ -1107,6 +1132,12 @@ input {
   font-weight: 600;
 }
 
+.inventory-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
 .inventory-quick-toggle {
   display: inline-flex;
   align-items: center;
@@ -1144,6 +1175,12 @@ input {
   margin: 1rem 0 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.inventory-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .inventory-toolbar {

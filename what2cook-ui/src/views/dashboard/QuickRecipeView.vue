@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { ChefHat, ClipboardCopy, X, Zap } from 'lucide-vue-next'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
 
 const route = useRoute()
@@ -115,7 +116,10 @@ onMounted(() => {
 
 <template>
   <section class="dash-panel quick-recipe" aria-labelledby="quick-recipe-title">
-    <h1 id="quick-recipe-title" class="dash-panel__title">Quick Recipe</h1>
+    <h1 id="quick-recipe-title" class="dash-panel__title quick-recipe-title">
+      <Zap class="icon icon--lg" aria-hidden="true" />
+      Quick Recipe
+    </h1>
     <p class="dash-panel__desc">
       Type ingredients as CSV — press comma or Enter to add each one, then copy a
       prompt for an AI cook.
@@ -143,7 +147,8 @@ onMounted(() => {
         :aria-label="`Remove ${item}`"
         @click="removeIngredient(item)"
       >
-        {{ item }} <span aria-hidden="true">×</span>
+        {{ item }}
+        <X class="icon icon--sm" aria-hidden="true" />
       </button>
       <p v-if="ingredients.length === 0" class="quick-recipe__empty">
         No ingredients yet
@@ -163,6 +168,7 @@ onMounted(() => {
 
     <div class="quick-recipe__actions">
       <button class="btn-primary" type="button" disabled title="Coming soon">
+        <ChefHat class="icon" aria-hidden="true" />
         Generate recipe — Coming soon
       </button>
       <button
@@ -171,6 +177,7 @@ onMounted(() => {
         :disabled="!canCopy"
         @click="onCopyPrompt"
       >
+        <ClipboardCopy class="icon" aria-hidden="true" />
         Copy prompt
       </button>
     </div>
