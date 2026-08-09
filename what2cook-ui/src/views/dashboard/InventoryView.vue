@@ -372,7 +372,7 @@ onMounted(() => {
     <div class="inventory-actions">
       <button class="btn-primary" type="button" disabled title="Coming soon">
         <ChefHat class="icon" aria-hidden="true" />
-        Generate recipe — Coming soon
+        Generate (soon)
       </button>
       <button
         class="btn-ghost"

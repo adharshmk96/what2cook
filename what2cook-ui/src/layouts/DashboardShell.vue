@@ -128,6 +128,16 @@ onBeforeUnmount(() => {
           <component :is="item.icon" class="icon" aria-hidden="true" />
           {{ item.label }}
         </RouterLink>
+        <RouterLink
+          class="dash-nav__link"
+          :class="{ 'router-link-active': route.name === 'dashboard-account' }"
+          active-class=""
+          exact-active-class=""
+          :to="{ name: 'dashboard-account' }"
+        >
+          <Settings class="icon" aria-hidden="true" />
+          Settings
+        </RouterLink>
       </nav>
       <main class="dash-content">
         <Breadcrumb />
