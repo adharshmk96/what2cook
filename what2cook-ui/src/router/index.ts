@@ -93,7 +93,7 @@ const router = createRouter({
           name: 'dashboard-account',
           component: () => import('../views/dashboard/AccountSettingsView.vue'),
           meta: {
-            breadcrumb: [{ label: 'Account' }],
+            breadcrumb: [{ label: 'Settings' }],
           },
         },
       ],

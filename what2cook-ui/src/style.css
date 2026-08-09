@@ -769,19 +769,118 @@ input {
 }
 
 .dash-sidebar__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
+  position: relative;
   padding-top: 0.75rem;
   border-top: 1px solid rgba(20, 36, 31, 0.08);
 }
 
+.dash-user-trigger {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  gap: 0.65rem;
+  padding: 0.55rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.dash-user-trigger:hover,
+.dash-user-trigger[aria-expanded='true'] {
+  background: rgba(15, 122, 95, 0.08);
+}
+
+.dash-user-trigger:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+
+.dash-user-avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--accent-deep);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .dash-user-email {
-  margin: 0;
-  padding-inline: 0.35rem;
-  color: var(--muted);
-  font-size: 0.78rem;
-  word-break: break-all;
+  overflow: hidden;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-user-chevron {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  transition: transform 160ms ease;
+}
+
+.dash-user-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.dash-user-menu {
+  position: absolute;
+  inset: auto 0 calc(100% + 0.55rem);
+  z-index: 10;
+  padding: 0.4rem;
+  border: 1px solid rgba(20, 36, 31, 0.12);
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 0 12px 30px rgba(20, 36, 31, 0.14);
+}
+
+.dash-user-menu__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+}
+
+.dash-user-menu__item:hover,
+.dash-user-menu__item:focus-visible {
+  background: rgba(15, 122, 95, 0.08);
+  text-decoration: none;
+}
+
+.dash-user-menu__item--danger {
+  color: var(--danger);
+}
+
+.dash-user-menu__item svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .dash-main {
@@ -857,6 +956,65 @@ input {
 
 .account-settings .auth-form {
   margin-top: 0.25rem;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  border: 1px solid rgba(20, 36, 31, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 253, 247, 0.68);
+  overflow-x: auto;
+}
+
+.settings-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.settings-tabs__tab:hover {
+  background: rgba(15, 122, 95, 0.07);
+  color: var(--ink);
+}
+
+.settings-tabs__tab.is-active {
+  background: #fffdf7;
+  color: var(--accent-deep);
+  box-shadow: 0 2px 8px rgba(35, 62, 49, 0.1);
+}
+
+.settings-tabs__tab:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: -2px;
+}
+
+.settings-tabs__badge {
+  border-radius: 999px;
+  padding: 0.18rem 0.4rem;
+  background: #edf2e5;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.settings-coming-soon .dash-panel__soon {
+  margin: 0 0 0.85rem;
 }
 
 .breadcrumb {

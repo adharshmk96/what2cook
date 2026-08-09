@@ -4,6 +4,13 @@ import FormError from '../../components/FormError.vue'
 import { useAuthStore } from '../../stores/auth'
 
 const auth = useAuthStore()
+const activeTab = ref<'account' | 'subscription' | 'api-key'>('account')
+
+const tabs = [
+  { id: 'account', label: 'Account', comingSoon: false },
+  { id: 'subscription', label: 'Subscription', comingSoon: true },
+  { id: 'api-key', label: 'API Key', comingSoon: true },
+] as const
 
 const email = ref(auth.user?.email ?? '')
 const emailError = ref<unknown>(null)
@@ -104,11 +111,53 @@ async function onResendVerification() {
 <template>
   <div class="account-settings">
     <header class="dash-panel dash-panel--flush">
-      <h1 class="dash-panel__title">Account</h1>
-      <p class="dash-panel__desc">Manage your email, verification, and password.</p>
+      <h1 class="dash-panel__title">Settings</h1>
+      <p class="dash-panel__desc">Manage your account and what2cook preferences.</p>
     </header>
 
-    <section class="dash-panel" aria-labelledby="email-section-title">
+    <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+      <button
+        v-for="tab in tabs"
+        :id="`settings-tab-${tab.id}`"
+        :key="tab.id"
+        type="button"
+        class="settings-tabs__tab"
+        :class="{ 'is-active': activeTab === tab.id }"
+        role="tab"
+        :aria-selected="activeTab === tab.id"
+        :aria-controls="`settings-panel-${tab.id}`"
+        @click="activeTab = tab.id"
+      >
+        {{ tab.label }}
+        <span v-if="tab.comingSoon" class="settings-tabs__badge">Coming soon</span>
+      </button>
+    </div>
+
+    <div
+      v-if="activeTab !== 'account'"
+      :id="`settings-panel-${activeTab}`"
+      class="dash-panel settings-coming-soon"
+      role="tabpanel"
+      :aria-labelledby="`settings-tab-${activeTab}`"
+    >
+      <p class="dash-panel__soon">Coming soon</p>
+      <h2 class="dash-section-title">
+        {{ activeTab === 'subscription' ? 'Subscription' : 'API Key' }}
+      </h2>
+      <p class="dash-panel__desc">
+        {{ activeTab === 'subscription'
+          ? 'Subscription management and plan details will be available here.'
+          : 'API key creation and management will be available here.' }}
+      </p>
+    </div>
+
+    <div
+      v-else
+      id="settings-panel-account"
+      role="tabpanel"
+      aria-labelledby="settings-tab-account"
+    >
+      <section class="dash-panel" aria-labelledby="email-section-title">
       <h2 id="email-section-title" class="dash-section-title">Email</h2>
       <form class="auth-form" @submit.prevent="onUpdateEmail">
         <label class="field">
@@ -194,6 +243,7 @@ async function onResendVerification() {
           {{ passwordSubmitting ? 'Saving…' : 'Save password' }}
         </button>
       </form>
-    </section>
+      </section>
+    </div>
   </div>
 </template>
