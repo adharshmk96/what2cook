@@ -543,6 +543,11 @@ input {
   background: rgba(255, 255, 255, 0.45);
 }
 
+.btn-ghost:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .auth-links {
   display: flex;
   flex-wrap: wrap;
@@ -1102,6 +1107,137 @@ input {
   font-weight: 600;
 }
 
+.inventory-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 1.35rem;
+}
+
+.inventory-add__submit {
+  margin-top: 0;
+  min-width: 5.5rem;
+}
+
+.inventory-status,
+.inventory-empty {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.inventory-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1.15rem;
+}
+
+.inventory-toolbar__select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.inventory-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inventory-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(20, 36, 31, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.inventory-card__select {
+  display: grid;
+  place-items: center;
+}
+
+.inventory-card__name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.inventory-card__qty {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.inventory-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.inventory-card__actions .btn-ghost {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.inventory-card__delete {
+  color: var(--danger);
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
+.inventory-card__edit {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.inventory-card__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.inventory-card__edit-actions .btn-primary,
+.inventory-card__edit-actions .btn-ghost {
+  margin-top: 0;
+  min-width: 5.5rem;
+}
+
+.inventory-dish {
+  margin-top: 1.35rem;
+}
+
+.inventory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.15rem;
+}
+
+.inventory-actions .btn-primary,
+.inventory-actions .btn-ghost {
+  min-width: 10rem;
+}
+
+.inventory-copy-status {
+  margin: 0.65rem 0 0;
+  color: var(--ok);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .recipe-results__list {
   display: grid;
   gap: 0.85rem;
@@ -1210,6 +1346,23 @@ input {
 
   .quick-recipe__actions .btn-primary,
   .quick-recipe__actions .btn-ghost {
+    flex: 1 1 100%;
+  }
+
+  .inventory-add {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .inventory-card__actions {
+    grid-column: 2;
+  }
+
+  .inventory-actions .btn-primary,
+  .inventory-actions .btn-ghost {
     flex: 1 1 100%;
   }
 }

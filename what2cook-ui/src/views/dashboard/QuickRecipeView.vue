@@ -1,21 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import FormError from '../../components/FormError.vue'
-import { useRecipesStore } from '../../stores/recipes'
+import { useRoute } from 'vue-router'
+import { buildRecipePrompt } from '../../lib/recipePrompt'
 
 const route = useRoute()
-const router = useRouter()
-const recipes = useRecipesStore()
 
 const draft = ref('')
 const ingredients = ref<string[]>([])
+const dish = ref('')
 const copyStatus = ref('')
 let copyStatusTimer: ReturnType<typeof setTimeout> | null = null
-
-const canGenerate = computed(
-  () => ingredients.value.length > 0 && !recipes.loading,
-)
 
 const canCopy = computed(() => ingredients.value.length > 0)
 
@@ -91,23 +85,16 @@ function seedFromQuery() {
   addTokens(raw)
 }
 
-function buildPrompt(): string {
-  const list = ingredients.value.join(', ')
-  return [
-    'Generate 3 recipes I can cook with these ingredients:',
-    list,
-    '',
-    'For each recipe include: title, estimated minutes, a short summary, and clear step-by-step instructions.',
-    'Prefer simple weeknight meals that use as many of the listed ingredients as practical.',
-  ].join('\n')
-}
-
 async function onCopyPrompt() {
   if (!canCopy.value) {
     return
   }
+  const prompt = buildRecipePrompt(
+    ingredients.value.map((name) => ({ name })),
+    dish.value,
+  )
   try {
-    await navigator.clipboard.writeText(buildPrompt())
+    await navigator.clipboard.writeText(prompt)
     copyStatus.value = 'Prompt copied'
   } catch (err) {
     console.warn('Clipboard write failed', err)
@@ -121,16 +108,6 @@ async function onCopyPrompt() {
   }, 2500)
 }
 
-async function onGenerate() {
-  if (!canGenerate.value) {
-    return
-  }
-  const result = await recipes.generate(ingredients.value)
-  if (result) {
-    await router.push({ name: 'dashboard-quick-recipe-results' })
-  }
-}
-
 onMounted(() => {
   seedFromQuery()
 })
@@ -140,7 +117,8 @@ onMounted(() => {
   <section class="dash-panel quick-recipe" aria-labelledby="quick-recipe-title">
     <h1 id="quick-recipe-title" class="dash-panel__title">Quick Recipe</h1>
     <p class="dash-panel__desc">
-      Type ingredients as CSV — press comma or Enter to add each one, then generate ideas from your kitchen.
+      Type ingredients as CSV — press comma or Enter to add each one, then copy a
+      prompt for an AI cook.
     </p>
 
     <label class="field quick-recipe__field">
@@ -150,7 +128,6 @@ onMounted(() => {
         type="text"
         autocomplete="off"
         placeholder="chicken, rice, tomatoes…"
-        :disabled="recipes.loading"
         @keydown="onKeydown"
         @input="onInput"
         @paste="onPaste"
@@ -164,43 +141,41 @@ onMounted(() => {
         :key="item"
         type="button"
         :aria-label="`Remove ${item}`"
-        :disabled="recipes.loading"
         @click="removeIngredient(item)"
       >
         {{ item }} <span aria-hidden="true">×</span>
       </button>
-      <p v-if="ingredients.length === 0" class="quick-recipe__empty">No ingredients yet</p>
+      <p v-if="ingredients.length === 0" class="quick-recipe__empty">
+        No ingredients yet
+      </p>
     </div>
 
-    <FormError :error="recipes.error" />
-
-    <p
-      v-if="recipes.loading"
-      class="quick-recipe__cooking"
-      role="status"
-      aria-live="polite"
-    >
-      Your recipe is simmering on the stove… it’ll be plated and served shortly.
-    </p>
+    <label class="field quick-recipe__field">
+      <span>Dish (optional)</span>
+      <input
+        v-model="dish"
+        type="text"
+        autocomplete="off"
+        placeholder="e.g. chicken curry"
+        maxlength="120"
+      />
+    </label>
 
     <div class="quick-recipe__actions">
-      <button
-        class="btn-primary"
-        type="button"
-        :disabled="!canGenerate"
-        @click="onGenerate"
-      >
-        {{ recipes.loading ? 'Cooking…' : 'Generate recipes' }}
+      <button class="btn-primary" type="button" disabled title="Coming soon">
+        Generate recipe — Coming soon
       </button>
       <button
         class="btn-ghost"
         type="button"
-        :disabled="!canCopy || recipes.loading"
+        :disabled="!canCopy"
         @click="onCopyPrompt"
       >
         Copy prompt
       </button>
     </div>
-    <p v-if="copyStatus" class="quick-recipe__copy-status" role="status">{{ copyStatus }}</p>
+    <p v-if="copyStatus" class="quick-recipe__copy-status" role="status">
+      {{ copyStatus }}
+    </p>
   </section>
 </template>

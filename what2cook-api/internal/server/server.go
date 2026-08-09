@@ -16,6 +16,7 @@ import (
 
 	"what2cook-api/internal/auth"
 	"what2cook-api/internal/config"
+	"what2cook-api/internal/inventory"
 	"what2cook-api/internal/mail"
 	"what2cook-api/internal/recipe"
 	"what2cook-api/web"
@@ -43,9 +44,14 @@ func New(cfg *config.Config, gdb *gorm.DB, mailer *mail.Mailer) (*Server, error)
 	recipeSvc := recipe.NewService()
 	recipeHandler := recipe.NewHandler(recipeSvc)
 
+	invRepo := inventory.NewRepository(gdb)
+	invSvc := inventory.NewService(invRepo)
+	invHandler := inventory.NewHandler(invSvc)
+
 	api := r.Group("/api/v1")
 	auth.RegisterRoutes(api, authHandler, authSvc)
 	recipe.RegisterRoutes(api, recipeHandler, authSvc)
+	inventory.RegisterRoutes(api, invHandler, authSvc)
 
 	if err := mountUI(r); err != nil {
 		return nil, err
