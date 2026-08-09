@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump patch version and create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+
+          git fetch --tags --force
+
+          latest="$(git tag -l '[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1 || true)"
+          if [[ -z "${latest}" ]]; then
+            next="0.0.1"
+          else
+            IFS=. read -r major minor patch <<<"${latest}"
+            [[ "${major}" =~ ^[0-9]+$ && "${minor}" =~ ^[0-9]+$ && "${patch}" =~ ^[0-9]+$ ]] \
+              || { echo "latest tag '${latest}' is not semver X.Y.Z" >&2; exit 1; }
+            next="${major}.${minor}.$((patch + 1))"
+          fi
+
+          echo "Creating release ${next} (previous: ${latest:-none})"
+          gh release create "${next}" \
+            --title "${next}" \
+            --generate-notes \
+            --target "${GITHUB_SHA}"

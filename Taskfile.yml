@@ -25,3 +25,8 @@ tasks:
     desc: Stop the development server
     cmds:
       - ./scripts/stop-dev.sh
+
+  deploy:
+    desc: Deploy to VPS (Swarm + Traefik via ../deployer)
+    cmds:
+      - ./scripts/deploy.sh

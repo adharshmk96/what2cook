@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: Setup SSH key
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '147.93.97.228' }}
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "${DEPLOY_SSH_PRIVATE_KEY}" ]]; then
+            echo "DEPLOY_SSH_PRIVATE_KEY secret is not set" >&2
+            exit 1
+          fi
+          install -m 700 -d "${HOME}/.ssh"
+          printf '%s\n' "${DEPLOY_SSH_PRIVATE_KEY}" > "${HOME}/.ssh/deploy_key"
+          chmod 600 "${HOME}/.ssh/deploy_key"
+          ssh-keyscan -H "${DEPLOY_HOST}" >> "${HOME}/.ssh/known_hosts"
+          chmod 644 "${HOME}/.ssh/known_hosts"
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_DOMAIN: ${{ vars.DEPLOY_DOMAIN }}
+          WHAT2COOK_APP_VERSION: ${{ github.event.release.tag_name || '' }}
+        run: |
+          set -Eeuo pipefail
+          export DEPLOY_SSH_KEY="${HOME}/.ssh/deploy_key"
+          # Drop empty overrides so deploy.sh keeps its defaults.
+          [[ -n "${DEPLOY_HOST:-}" ]] || unset DEPLOY_HOST
+          [[ -n "${DEPLOY_USER:-}" ]] || unset DEPLOY_USER
+          [[ -n "${DEPLOY_PATH:-}" ]] || unset DEPLOY_PATH
+          [[ -n "${DEPLOY_DOMAIN:-}" ]] || unset DEPLOY_DOMAIN
+          [[ -n "${WHAT2COOK_APP_VERSION:-}" ]] || unset WHAT2COOK_APP_VERSION
+          ./scripts/deploy.sh
