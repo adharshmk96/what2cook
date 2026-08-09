@@ -1107,12 +1107,31 @@ input {
   font-weight: 600;
 }
 
+.inventory-quick-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
 .inventory-add {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: end;
-  margin-top: 1.35rem;
+  margin-top: 0.85rem;
+}
+
+.inventory-quick-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-top: 0.85rem;
 }
 
 .inventory-add__submit {
@@ -1349,7 +1368,8 @@ input {
     flex: 1 1 100%;
   }
 
-  .inventory-add {
+  .inventory-add,
+  .inventory-quick-add {
     grid-template-columns: 1fr;
   }
 

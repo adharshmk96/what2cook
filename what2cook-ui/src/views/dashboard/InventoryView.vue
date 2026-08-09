@@ -2,11 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import FormError from '../../components/FormError.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
+import { parseInventoryCsv } from '../../lib/parseInventoryCsv'
 import { useInventoryStore } from '../../stores/inventory'
 import type { InventoryItem } from '../../api/inventory'
 
 const store = useInventoryStore()
 
+const quickAdd = ref(false)
+const quickAddText = ref('')
 const newName = ref('')
 const newQuantity = ref('')
 const dish = ref('')
@@ -63,6 +66,22 @@ async function onAdd() {
     newName.value = ''
     newQuantity.value = ''
   }
+}
+
+async function onQuickAdd() {
+  const entries = parseInventoryCsv(quickAddText.value)
+  if (entries.length === 0) {
+    return
+  }
+
+  for (const entry of entries) {
+    const item = await store.addItem(entry.name, entry.quantity)
+    if (!item) {
+      return
+    }
+  }
+
+  quickAddText.value = ''
 }
 
 function startEdit(item: InventoryItem) {
@@ -142,7 +161,16 @@ onMounted(() => {
       Track pantry ingredients and quantities, then copy a prompt for an AI cook.
     </p>
 
-    <form class="inventory-add" @submit.prevent="onAdd">
+    <label class="inventory-quick-toggle">
+      <input v-model="quickAdd" type="checkbox" />
+      <span>Quick add</span>
+    </label>
+
+    <form
+      v-if="!quickAdd"
+      class="inventory-add"
+      @submit.prevent="onAdd"
+    >
       <label class="field inventory-add__name">
         <span>Ingredient</span>
         <input
@@ -169,6 +197,30 @@ onMounted(() => {
         class="btn-primary inventory-add__submit"
         type="submit"
         :disabled="store.loading || store.saving || !newName.trim()"
+      >
+        Add
+      </button>
+    </form>
+
+    <form
+      v-else
+      class="inventory-quick-add"
+      @submit.prevent="onQuickAdd"
+    >
+      <label class="field inventory-quick-add__field">
+        <span>Ingredients (CSV)</span>
+        <input
+          v-model="quickAddText"
+          type="text"
+          autocomplete="off"
+          placeholder="chicken: 100g, tomato, ginger: 100g"
+          :disabled="store.loading || store.saving"
+        />
+      </label>
+      <button
+        class="btn-primary inventory-add__submit"
+        type="submit"
+        :disabled="store.loading || store.saving || !quickAddText.trim()"
       >
         Add
       </button>
