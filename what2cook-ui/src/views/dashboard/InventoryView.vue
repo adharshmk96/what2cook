@@ -10,6 +10,7 @@ import {
   ShoppingBasket,
   Trash2,
 } from 'lucide-vue-next'
+import AiPromptLinks from '../../components/AiPromptLinks.vue'
 import FormError from '../../components/FormError.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
 import { parseInventoryCsv } from '../../lib/parseInventoryCsv'
@@ -38,6 +39,17 @@ const canCopy = computed(() => selectedIds.value.size > 0)
 
 const selectedIngredients = computed(() =>
   items.value.filter((item) => selectedIds.value.has(item.id)),
+)
+
+const recipePrompt = computed(() =>
+  buildRecipePrompt(
+    selectedIngredients.value.map((item) => ({
+      name: item.name,
+      quantity: item.quantity,
+    })),
+    dish.value,
+    'inventory',
+  ),
 )
 
 function toggleSelect(id: string) {
@@ -137,16 +149,8 @@ async function onCopyPrompt() {
   if (!canCopy.value) {
     return
   }
-  const prompt = buildRecipePrompt(
-    selectedIngredients.value.map((item) => ({
-      name: item.name,
-      quantity: item.quantity,
-    })),
-    dish.value,
-    'inventory',
-  )
   try {
-    await navigator.clipboard.writeText(prompt)
+    await navigator.clipboard.writeText(recipePrompt.value)
     copyStatus.value = 'Prompt copied'
   } catch (err) {
     console.warn('Clipboard write failed', err)
@@ -374,15 +378,18 @@ onMounted(() => {
         <ChefHat class="icon" aria-hidden="true" />
         Generate (soon)
       </button>
-      <button
-        class="btn-ghost"
-        type="button"
-        :disabled="!canCopy"
-        @click="onCopyPrompt"
-      >
-        <ClipboardCopy class="icon" aria-hidden="true" />
-        Copy prompt
-      </button>
+      <div class="prompt-actions">
+        <button
+          class="btn-ghost"
+          type="button"
+          :disabled="!canCopy"
+          @click="onCopyPrompt"
+        >
+          <ClipboardCopy class="icon" aria-hidden="true" />
+          Copy prompt
+        </button>
+        <AiPromptLinks :prompt="recipePrompt" :disabled="!canCopy" />
+      </div>
     </div>
     <p v-if="copyStatus" class="inventory-copy-status" role="status">
       {{ copyStatus }}

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ChefHat, ClipboardCopy, X, Zap } from 'lucide-vue-next'
+import AiPromptLinks from '../../components/AiPromptLinks.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
 
 const route = useRoute()
@@ -13,6 +14,13 @@ const copyStatus = ref('')
 let copyStatusTimer: ReturnType<typeof setTimeout> | null = null
 
 const canCopy = computed(() => ingredients.value.length > 0)
+
+const recipePrompt = computed(() =>
+  buildRecipePrompt(
+    ingredients.value.map((name) => ({ name })),
+    dish.value,
+  ),
+)
 
 function parseTokens(raw: string): string[] {
   return raw
@@ -90,12 +98,8 @@ async function onCopyPrompt() {
   if (!canCopy.value) {
     return
   }
-  const prompt = buildRecipePrompt(
-    ingredients.value.map((name) => ({ name })),
-    dish.value,
-  )
   try {
-    await navigator.clipboard.writeText(prompt)
+    await navigator.clipboard.writeText(recipePrompt.value)
     copyStatus.value = 'Prompt copied'
   } catch (err) {
     console.warn('Clipboard write failed', err)
@@ -171,15 +175,18 @@ onMounted(() => {
         <ChefHat class="icon" aria-hidden="true" />
         Generate (soon)
       </button>
-      <button
-        class="btn-ghost"
-        type="button"
-        :disabled="!canCopy"
-        @click="onCopyPrompt"
-      >
-        <ClipboardCopy class="icon" aria-hidden="true" />
-        Copy prompt
-      </button>
+      <div class="prompt-actions">
+        <button
+          class="btn-ghost"
+          type="button"
+          :disabled="!canCopy"
+          @click="onCopyPrompt"
+        >
+          <ClipboardCopy class="icon" aria-hidden="true" />
+          Copy prompt
+        </button>
+        <AiPromptLinks :prompt="recipePrompt" :disabled="!canCopy" />
+      </div>
     </div>
     <p v-if="copyStatus" class="quick-recipe__copy-status" role="status">
       {{ copyStatus }}
