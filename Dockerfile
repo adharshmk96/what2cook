@@ -2,7 +2,7 @@ FROM oven/bun:1.3.13 AS ui
 
 WORKDIR /ui
 COPY what2cook-ui/package.json what2cook-ui/bun.lock ./
-RUN bun install --no-save
+RUN bun install --frozen-lockfile
 COPY what2cook-ui/ ./
 RUN bun run build
 
@@ -19,12 +19,15 @@ RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/what2cook .
 FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir /data \
     && chown 65532:65532 /data
+
 COPY --from=build /out/what2cook /usr/local/bin/what2cook
 
 USER 65532:65532
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl --fail --silent http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["what2cook", "serve"]

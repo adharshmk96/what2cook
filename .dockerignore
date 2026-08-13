@@ -1,0 +1,10 @@
+.git
+.github
+.dev
+.cursor
+requirements
+what2cook-ui/node_modules
+what2cook-ui/dist
+what2cook-api/what2cook
+what2cook-api/config.yaml
+what2cook-api/what2cook.db

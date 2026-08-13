@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      WHAT2COOK_SERVER_ADDR: ":8080"
+      WHAT2COOK_SERVER_PUBLIC_URL: "${WHAT2COOK_SERVER_PUBLIC_URL:?Set the public HTTPS URL in Dokploy}"
+      WHAT2COOK_DB_PATH: /data/what2cook.db
+      WHAT2COOK_AUTH_TOKEN_SECRET: "${WHAT2COOK_AUTH_TOKEN_SECRET:?Set a long random secret in Dokploy}"
+      WHAT2COOK_SMTP_HOST: "${WHAT2COOK_SMTP_HOST:-}"
+      WHAT2COOK_SMTP_PORT: "${WHAT2COOK_SMTP_PORT:-587}"
+      WHAT2COOK_SMTP_USER: "${WHAT2COOK_SMTP_USER:-}"
+      WHAT2COOK_SMTP_PASSWORD: "${WHAT2COOK_SMTP_PASSWORD:-}"
+      WHAT2COOK_SMTP_FROM: "${WHAT2COOK_SMTP_FROM:-}"
+    volumes:
+      - what2cook-data:/data
+    expose:
+      - "8080"
+
+volumes:
+  what2cook-data:
