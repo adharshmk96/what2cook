@@ -12,6 +12,7 @@ import {
 } from 'lucide-vue-next'
 import AiPromptLinks from '../../components/AiPromptLinks.vue'
 import FormError from '../../components/FormError.vue'
+import Modal from '../../components/Modal.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
 import { parseInventoryCsv } from '../../lib/parseInventoryCsv'
 import { useInventoryStore } from '../../stores/inventory'
@@ -19,7 +20,10 @@ import type { InventoryItem } from '../../api/inventory'
 
 const store = useInventoryStore()
 
-const quickAdd = ref(false)
+type AddMode = 'add' | 'quick-add'
+
+const addModalOpen = ref(false)
+const addMode = ref<AddMode>('add')
 const quickAddText = ref('')
 const newName = ref('')
 const newQuantity = ref('')
@@ -78,6 +82,22 @@ function toggleSelectAll() {
   }
 }
 
+function resetAddFields() {
+  newName.value = ''
+  newQuantity.value = ''
+  quickAddText.value = ''
+}
+
+function openAddModal(mode: AddMode = 'add') {
+  addMode.value = mode
+  addModalOpen.value = true
+}
+
+function closeAddModal() {
+  addModalOpen.value = false
+  resetAddFields()
+}
+
 async function onAdd() {
   const name = newName.value.trim()
   if (!name) {
@@ -85,8 +105,7 @@ async function onAdd() {
   }
   const item = await store.addItem(name, newQuantity.value)
   if (item) {
-    newName.value = ''
-    newQuantity.value = ''
+    closeAddModal()
   }
 }
 
@@ -103,7 +122,7 @@ async function onQuickAdd() {
     }
   }
 
-  quickAddText.value = ''
+  closeAddModal()
 }
 
 function startEdit(item: InventoryItem) {
@@ -171,81 +190,123 @@ onMounted(() => {
 
 <template>
   <section class="dash-panel inventory" aria-labelledby="inventory-title">
-    <h1 id="inventory-title" class="dash-panel__title inventory-title">
-      <Package class="icon icon--lg" aria-hidden="true" />
-      Inventory
-    </h1>
-    <p class="dash-panel__desc">
-      Track pantry ingredients and quantities, then copy a prompt for an AI cook.
-    </p>
-
-    <label class="inventory-quick-toggle">
-      <input v-model="quickAdd" type="checkbox" />
-      <ListPlus class="icon icon--sm" aria-hidden="true" />
-      <span>Quick add</span>
-    </label>
-
-    <form
-      v-if="!quickAdd"
-      class="inventory-add"
-      @submit.prevent="onAdd"
-    >
-      <label class="field inventory-add__name">
-        <span>Ingredient</span>
-        <input
-          v-model="newName"
-          type="text"
-          autocomplete="off"
-          placeholder="e.g. chicken"
-          :disabled="store.loading || store.saving"
-          maxlength="80"
-        />
-      </label>
-      <label class="field inventory-add__qty">
-        <span>Quantity (optional)</span>
-        <input
-          v-model="newQuantity"
-          type="text"
-          autocomplete="off"
-          placeholder="e.g. 500g"
-          :disabled="store.loading || store.saving"
-          maxlength="40"
-        />
-      </label>
+    <div class="inventory-header">
+      <div>
+        <h1 id="inventory-title" class="dash-panel__title inventory-title">
+          <Package class="icon icon--lg" aria-hidden="true" />
+          Inventory
+        </h1>
+        <p class="dash-panel__desc">
+          Track pantry ingredients and quantities, then copy a prompt for an AI cook.
+        </p>
+      </div>
       <button
-        class="btn-primary inventory-add__submit"
-        type="submit"
-        :disabled="store.loading || store.saving || !newName.trim()"
+        class="btn-primary inventory-add-btn"
+        type="button"
+        :disabled="store.loading || store.saving"
+        @click="openAddModal()"
       >
         <Plus class="icon" aria-hidden="true" />
         Add
       </button>
-    </form>
+    </div>
 
-    <form
-      v-else
-      class="inventory-quick-add"
-      @submit.prevent="onQuickAdd"
+    <Modal
+      :open="addModalOpen"
+      title="Add ingredients"
+      title-id="inventory-add-title"
+      @close="closeAddModal"
     >
-      <label class="field inventory-quick-add__field">
-        <span>Ingredients (CSV)</span>
-        <input
-          v-model="quickAddText"
-          type="text"
-          autocomplete="off"
-          placeholder="chicken: 100g, tomato, ginger: 100g"
-          :disabled="store.loading || store.saving"
-        />
-      </label>
-      <button
-        class="btn-primary inventory-add__submit"
-        type="submit"
-        :disabled="store.loading || store.saving || !quickAddText.trim()"
+      <div class="inventory-add-tabs" role="tablist" aria-label="Add mode">
+        <button
+          class="inventory-add-tabs__tab"
+          :class="{ 'is-active': addMode === 'add' }"
+          type="button"
+          role="tab"
+          :aria-selected="addMode === 'add'"
+          @click="addMode = 'add'"
+        >
+          <Plus class="icon icon--sm" aria-hidden="true" />
+          Add
+        </button>
+        <button
+          class="inventory-add-tabs__tab"
+          :class="{ 'is-active': addMode === 'quick-add' }"
+          type="button"
+          role="tab"
+          :aria-selected="addMode === 'quick-add'"
+          @click="addMode = 'quick-add'"
+        >
+          <ListPlus class="icon icon--sm" aria-hidden="true" />
+          Quick add
+        </button>
+      </div>
+
+      <form
+        v-if="addMode === 'add'"
+        class="inventory-add"
+        @submit.prevent="onAdd"
       >
-        <Plus class="icon" aria-hidden="true" />
-        Add
-      </button>
-    </form>
+        <label class="field">
+          <span>Ingredient</span>
+          <input
+            v-model="newName"
+            type="text"
+            autocomplete="off"
+            placeholder="e.g. chicken"
+            :disabled="store.loading || store.saving"
+            maxlength="80"
+          />
+        </label>
+        <label class="field">
+          <span>Quantity (optional)</span>
+          <input
+            v-model="newQuantity"
+            type="text"
+            autocomplete="off"
+            placeholder="e.g. 500g"
+            :disabled="store.loading || store.saving"
+            maxlength="40"
+          />
+        </label>
+        <button
+          class="btn-primary inventory-add__submit"
+          type="submit"
+          :disabled="store.loading || store.saving || !newName.trim()"
+        >
+          <Plus class="icon" aria-hidden="true" />
+          Add
+        </button>
+      </form>
+
+      <form
+        v-else
+        class="inventory-quick-add"
+        @submit.prevent="onQuickAdd"
+      >
+        <label class="field">
+          <span>Ingredients (CSV)</span>
+          <input
+            v-model="quickAddText"
+            type="text"
+            autocomplete="off"
+            placeholder="chicken: 100g, tomato, ginger: 100g"
+            :disabled="store.loading || store.saving"
+          />
+        </label>
+        <p class="inventory-quick-add__hint">
+          Separate items with commas. Use <code>name: quantity</code> for amounts.
+        </p>
+        <button
+          class="btn-primary inventory-add__submit"
+          type="submit"
+          :disabled="store.loading || store.saving || !quickAddText.trim()"
+        >
+          <Plus class="icon" aria-hidden="true" />
+          Add all
+        </button>
+      </form>
+    </Modal>
 
     <FormError :error="store.error" />
 
@@ -358,7 +419,16 @@ onMounted(() => {
       </ul>
       <p v-else class="inventory-empty">
         <ShoppingBasket class="icon icon--lg" aria-hidden="true" />
-        <span>No ingredients yet — add your first above.</span>
+        <span>No ingredients yet — tap Add to get started.</span>
+        <button
+          class="btn-primary inventory-empty__add"
+          type="button"
+          :disabled="store.saving"
+          @click="openAddModal()"
+        >
+          <Plus class="icon" aria-hidden="true" />
+          Add
+        </button>
       </p>
     </template>
 
