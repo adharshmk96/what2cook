@@ -83,20 +83,3 @@ what2cook/
   what2cook-api/        # Gin + GORM + embed
   what2cook-ui/         # Vue 3 + Vite (base /; app routes /app/*)
 ```
-
-## Deploy with Dokploy
-
-1. Create a **Docker Compose** service and connect this Git repository.
-2. Set the compose path to `docker-compose.yml` and enable Auto Deploy.
-3. Add these required environment variables:
-
-   ```env
-   WHAT2COOK_SERVER_PUBLIC_URL=https://recipes.example.com
-   WHAT2COOK_AUTH_TOKEN_SECRET=replace-with-a-long-random-secret
-   ```
-
-4. In **Domains**, route your domain to service `app`, port `8080`, with HTTPS.
-5. Deploy. The named `what2cook-data` volume keeps the SQLite database between deployments.
-
-SMTP variables in `docker-compose.yml` are optional. Back up the named volume
-from Dokploy; it contains all application data.
