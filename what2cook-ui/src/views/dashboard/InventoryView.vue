@@ -218,6 +218,41 @@ onMounted(() => void store.loadDefault())
       </button>
     </div>
 
+    <div class="inventory-prompt">
+      <label class="field inventory-dish">
+        <span>Dish (optional)</span>
+        <input
+          v-model="dish"
+          type="text"
+          autocomplete="off"
+          placeholder="e.g. chicken curry"
+          maxlength="120"
+        />
+      </label>
+
+      <div class="inventory-actions">
+        <button class="btn-primary" type="button" disabled title="Coming soon">
+          <ChefHat class="icon" aria-hidden="true" />
+          Generate (soon)
+        </button>
+        <div class="prompt-actions">
+          <button
+            class="btn-ghost"
+            type="button"
+            :disabled="!canCopy"
+            @click="onCopyPrompt"
+          >
+            <ClipboardCopy class="icon" aria-hidden="true" />
+            Copy prompt
+          </button>
+          <AiPromptLinks :prompt="recipePrompt" :disabled="!canCopy" />
+        </div>
+      </div>
+      <p v-if="copyStatus" class="inventory-copy-status" role="status">
+        {{ copyStatus }}
+      </p>
+    </div>
+
     <Modal
       :open="addModalOpen"
       title="Add ingredient"
@@ -460,39 +495,6 @@ onMounted(() => void store.loadDefault())
         </button>
       </p>
     </template>
-
-    <label class="field inventory-dish">
-      <span>Dish (optional)</span>
-      <input
-        v-model="dish"
-        type="text"
-        autocomplete="off"
-        placeholder="e.g. chicken curry"
-        maxlength="120"
-      />
-    </label>
-
-    <div class="inventory-actions">
-      <button class="btn-primary" type="button" disabled title="Coming soon">
-        <ChefHat class="icon" aria-hidden="true" />
-        Generate (soon)
-      </button>
-      <div class="prompt-actions">
-        <button
-          class="btn-ghost"
-          type="button"
-          :disabled="!canCopy"
-          @click="onCopyPrompt"
-        >
-          <ClipboardCopy class="icon" aria-hidden="true" />
-          Copy prompt
-        </button>
-        <AiPromptLinks :prompt="recipePrompt" :disabled="!canCopy" />
-      </div>
-    </div>
-    <p v-if="copyStatus" class="inventory-copy-status" role="status">
-      {{ copyStatus }}
-    </p>
   </section>
 </template>
 

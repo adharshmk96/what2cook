@@ -1482,7 +1482,16 @@ input {
 }
 
 .inventory-dish {
-  margin-top: 1.35rem;
+  margin-top: 0;
+}
+
+.inventory-prompt {
+  margin-top: 1.25rem;
+  margin-bottom: 0.35rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(20, 36, 31, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 253, 247, 0.68);
 }
 
 .inventory-actions {
