@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-vue-next'
 import AiPromptLinks from '../../components/AiPromptLinks.vue'
+import CategoryCombobox from '../../components/CategoryCombobox.vue'
 import FormError from '../../components/FormError.vue'
 import Modal from '../../components/Modal.vue'
 import { buildRecipePrompt } from '../../lib/recipePrompt'
@@ -248,23 +249,14 @@ onMounted(() => void store.loadDefault())
         </label>
         <label class="field">
           <span>Category (optional)</span>
-          <input
+          <CategoryCombobox
             v-model="newCategory"
-            type="text"
-            list="inventory-categories"
-            autocomplete="off"
-            placeholder="e.g. Meat, Vegetables, Spices"
-            maxlength="60"
+            :options="categories"
+            input-id="inventory-add-category"
+            list-id="inventory-add-category-list"
             :disabled="store.saving"
           />
         </label>
-        <datalist id="inventory-categories">
-          <option
-            v-for="category in categories"
-            :key="category"
-            :value="category"
-          />
-        </datalist>
         <button
           class="btn-primary inventory-add__submit"
           type="submit"
@@ -382,12 +374,12 @@ onMounted(() => void store.loadDefault())
                   </label>
                   <label class="field">
                     <span class="sr-only">Category</span>
-                    <input
+                    <CategoryCombobox
                       v-model="editCategory"
-                      type="text"
-                      list="inventory-categories"
+                      :options="categories"
+                      list-id="inventory-edit-category-list"
                       placeholder="Category"
-                      maxlength="60"
+                      aria-label="Category"
                       :disabled="store.saving"
                     />
                   </label>
