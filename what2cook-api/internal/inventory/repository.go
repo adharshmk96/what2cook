@@ -96,3 +96,90 @@ func (r *Repository) DeleteItem(inventoryID, itemID, userID uuid.UUID) error {
 	if res.RowsAffected == 0 { return ErrNotFound }
 	return nil
 }
+
+// ListByUserWithItems returns all inventories for a user with nested items.
+func (r *Repository) ListByUserWithItems(userID uuid.UUID) ([]Inventory, error) {
+	var list []Inventory
+	err := r.db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("category ASC, name ASC")
+	}).Where("user_id = ?", userID).Order("is_default DESC, created_at ASC").Find(&list).Error
+	if err != nil {
+		return nil, fmt.Errorf("list inventories with items: %w", err)
+	}
+	return list, nil
+}
+
+// InventoryImport is a normalized inventory payload for bulk import.
+type InventoryImport struct {
+	Name      string
+	IsDefault bool
+	Items     []ItemImport
+}
+
+// ItemImport is a normalized inventory item payload for bulk import.
+type ItemImport struct {
+	Name     string
+	Quantity *string
+	Category *string
+}
+
+// ReplaceAllForUser deletes existing inventories and recreates them from imports.
+func (r *Repository) ReplaceAllForUser(userID uuid.UUID, imports []InventoryImport) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var existing []Inventory
+		if err := tx.Where("user_id = ?", userID).Find(&existing).Error; err != nil {
+			return fmt.Errorf("list inventories for replace: %w", err)
+		}
+
+		for _, inv := range existing {
+			if err := tx.Where("inventory_id = ?", inv.ID).Delete(&InventoryItem{}).Error; err != nil {
+				return fmt.Errorf("delete inventory items: %w", err)
+			}
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&Inventory{}).Error; err != nil {
+			return fmt.Errorf("delete inventories: %w", err)
+		}
+
+		if len(imports) == 0 {
+			inv := &Inventory{UserID: userID, Name: DefaultInventoryName, IsDefault: true}
+			if err := tx.Create(inv).Error; err != nil {
+				return fmt.Errorf("create default inventory: %w", err)
+			}
+			return nil
+		}
+
+		hasDefault := false
+		for _, imp := range imports {
+			if imp.IsDefault {
+				hasDefault = true
+				break
+			}
+		}
+		if !hasDefault {
+			imports[0].IsDefault = true
+		}
+
+		for _, imp := range imports {
+			inv := &Inventory{
+				UserID:    userID,
+				Name:      imp.Name,
+				IsDefault: imp.IsDefault,
+			}
+			if err := tx.Create(inv).Error; err != nil {
+				return fmt.Errorf("create inventory: %w", err)
+			}
+			for _, item := range imp.Items {
+				row := &InventoryItem{
+					InventoryID: inv.ID,
+					Name:        item.Name,
+					Quantity:    item.Quantity,
+					Category:    item.Category,
+				}
+				if err := tx.Create(row).Error; err != nil {
+					return fmt.Errorf("create inventory item: %w", err)
+				}
+			}
+		}
+		return nil
+	})
+}

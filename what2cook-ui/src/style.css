@@ -1135,6 +1135,26 @@ input {
   margin: 0 0 0.85rem;
 }
 
+.settings-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.settings-data-actions__btn {
+  min-width: 9.5rem;
+}
+
+.settings-data-import input[type='file'] {
+  width: 100%;
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  background: var(--field-bg);
+  padding: 0.7rem 0.85rem;
+  color: var(--ink);
+}
+
 .breadcrumb {
   margin: 0 0 1rem;
 }

@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { Download, FileUp, Table } from 'lucide-vue-next'
 import FormError from '../../components/FormError.vue'
+import { importUserData, exportUserData } from '../../api/data'
 import { useAuthStore } from '../../stores/auth'
+import { useInventoryStore } from '../../stores/inventory'
 
 const auth = useAuthStore()
-const activeTab = ref<'account' | 'api-key'>('account')
+const inventory = useInventoryStore()
+const activeTab = ref<'account' | 'data' | 'api-key'>('account')
 
 const tabs = [
   { id: 'account', label: 'Account', comingSoon: false },
+  { id: 'data', label: 'Data', comingSoon: false },
   { id: 'api-key', label: 'API Key', comingSoon: true },
 ] as const
 
@@ -26,6 +31,15 @@ const passwordSubmitting = ref(false)
 const verifyError = ref<unknown>(null)
 const verifySuccess = ref('')
 const verifySubmitting = ref(false)
+
+const exportError = ref<unknown>(null)
+const exportStatus = ref('')
+const exportSubmitting = ref(false)
+
+const importError = ref<unknown>(null)
+const importSuccess = ref('')
+const importSubmitting = ref(false)
+const importFile = ref<File | null>(null)
 
 const isVerified = computed(() => Boolean(auth.user?.email_verified))
 
@@ -105,6 +119,57 @@ async function onResendVerification() {
     verifySubmitting.value = false
   }
 }
+
+async function onExport(format: 'csv' | 'xlsx') {
+  exportError.value = null
+  exportStatus.value = ''
+  exportSubmitting.value = true
+  try {
+    await exportUserData(format)
+    exportStatus.value = `Exported as ${format === 'xlsx' ? 'Excel' : 'CSV'}.`
+  } catch (err) {
+    exportError.value = err
+  } finally {
+    exportSubmitting.value = false
+  }
+}
+
+function onImportFileChange(event: Event) {
+  importError.value = null
+  importSuccess.value = ''
+  const input = event.target as HTMLInputElement
+  importFile.value = input.files?.[0] ?? null
+}
+
+async function onImport() {
+  importError.value = null
+  importSuccess.value = ''
+
+  if (!importFile.value) {
+    importError.value = new Error('Choose a CSV or Excel file first.')
+    return
+  }
+
+  if (
+    !window.confirm(
+      'Import will replace all inventories and ingredients with the file contents. Continue?',
+    )
+  ) {
+    return
+  }
+
+  importSubmitting.value = true
+  try {
+    const result = await importUserData(importFile.value)
+    importSuccess.value = `Imported ${result.items} ingredients across ${result.inventories} inventories.`
+    importFile.value = null
+    await inventory.loadDefault()
+  } catch (err) {
+    importError.value = err
+  } finally {
+    importSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -133,7 +198,7 @@ async function onResendVerification() {
     </div>
 
     <div
-      v-if="activeTab !== 'account'"
+      v-if="activeTab === 'api-key'"
       :id="`settings-panel-${activeTab}`"
       class="dash-panel settings-coming-soon"
       role="tabpanel"
@@ -144,6 +209,71 @@ async function onResendVerification() {
       <p class="dash-panel__desc">
         API key creation and management will be available here.
       </p>
+    </div>
+
+    <div
+      v-else-if="activeTab === 'data'"
+      id="settings-panel-data"
+      role="tabpanel"
+      aria-labelledby="settings-tab-data"
+    >
+      <section class="dash-panel" aria-labelledby="export-section-title">
+        <h2 id="export-section-title" class="dash-section-title">Export data</h2>
+        <p class="dash-panel__desc">
+          Download all your account and inventory data as CSV or Excel.
+        </p>
+        <div class="settings-data-actions">
+          <button
+            class="btn-ghost settings-data-actions__btn"
+            type="button"
+            :disabled="exportSubmitting"
+            @click="onExport('csv')"
+          >
+            <Download class="icon" aria-hidden="true" />
+            Export CSV
+          </button>
+          <button
+            class="btn-ghost settings-data-actions__btn"
+            type="button"
+            :disabled="exportSubmitting"
+            @click="onExport('xlsx')"
+          >
+            <Table class="icon" aria-hidden="true" />
+            Export Excel
+          </button>
+        </div>
+        <FormError :error="exportError" />
+        <p v-if="exportStatus" class="form-success" role="status">{{ exportStatus }}</p>
+      </section>
+
+      <section class="dash-panel" aria-labelledby="import-section-title">
+        <h2 id="import-section-title" class="dash-section-title">Import data</h2>
+        <p class="dash-panel__desc">
+          Upload a CSV or Excel file exported from what2cook. This replaces all
+          current inventories and ingredients.
+        </p>
+        <form class="auth-form settings-data-import" @submit.prevent="onImport">
+          <label class="field">
+            <span>Data file</span>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              :disabled="importSubmitting"
+              @change="onImportFileChange"
+            />
+          </label>
+          <button
+            class="btn-primary"
+            type="submit"
+            :disabled="importSubmitting || !importFile"
+          >
+            <FileUp class="icon" aria-hidden="true" />
+            {{ importSubmitting ? 'Importing…' : 'Import data' }}
+          </button>
+        </form>
+        <FormError :error="importError" />
+        <p v-if="importSuccess" class="form-success" role="status">{{ importSuccess }}</p>
+      </section>
     </div>
 
     <div
