@@ -4,11 +4,10 @@ import FormError from '../../components/FormError.vue'
 import { useAuthStore } from '../../stores/auth'
 
 const auth = useAuthStore()
-const activeTab = ref<'account' | 'subscription' | 'api-key'>('account')
+const activeTab = ref<'account' | 'api-key'>('account')
 
 const tabs = [
   { id: 'account', label: 'Account', comingSoon: false },
-  { id: 'subscription', label: 'Subscription', comingSoon: true },
   { id: 'api-key', label: 'API Key', comingSoon: true },
 ] as const
 
@@ -141,13 +140,9 @@ async function onResendVerification() {
       :aria-labelledby="`settings-tab-${activeTab}`"
     >
       <p class="dash-panel__soon">Coming soon</p>
-      <h2 class="dash-section-title">
-        {{ activeTab === 'subscription' ? 'Subscription' : 'API Key' }}
-      </h2>
+      <h2 class="dash-section-title">API Key</h2>
       <p class="dash-panel__desc">
-        {{ activeTab === 'subscription'
-          ? 'Subscription management and plan details will be available here.'
-          : 'API key creation and management will be available here.' }}
+        API key creation and management will be available here.
       </p>
     </div>
 
