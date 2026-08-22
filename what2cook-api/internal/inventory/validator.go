@@ -5,6 +5,7 @@ import "strings"
 const (
 	maxNameLen     = 80
 	maxQuantityLen = 40
+	maxCategoryLen = 60
 )
 
 func normalizeName(raw string) string {
@@ -27,6 +28,20 @@ func normalizeQuantity(raw *string) *string {
 		q = q[:maxQuantityLen]
 	}
 	return &q
+}
+
+func normalizeCategory(raw *string) *string {
+	if raw == nil {
+		return nil
+	}
+	category := strings.TrimSpace(*raw)
+	if category == "" {
+		return nil
+	}
+	if len(category) > maxCategoryLen {
+		category = category[:maxCategoryLen]
+	}
+	return &category
 }
 
 // ValidateCreateInventory returns an error message, or empty if valid.
@@ -63,6 +78,7 @@ func ValidateCreateItem(req *CreateItemRequest) string {
 		return "name is required"
 	}
 	req.Quantity = normalizeQuantity(req.Quantity)
+	req.Category = normalizeCategory(req.Category)
 	return ""
 }
 
@@ -71,7 +87,7 @@ func ValidateUpdateItem(req *UpdateItemRequest) string {
 	if req == nil {
 		return "name is required"
 	}
-	if req.Name == nil && req.Quantity == nil {
+	if req.Name == nil && req.Quantity == nil && req.Category == nil {
 		return "at least one field is required"
 	}
 	if req.Name != nil {
@@ -82,13 +98,18 @@ func ValidateUpdateItem(req *UpdateItemRequest) string {
 		req.Name = &normalized
 	}
 	if req.Quantity != nil {
-		// Empty string clears quantity; keep a sentinel empty pointer so the
-		// handler can tell the field was provided, then normalize in service.
 		trimmed := strings.TrimSpace(*req.Quantity)
 		if len(trimmed) > maxQuantityLen {
 			trimmed = trimmed[:maxQuantityLen]
 		}
 		req.Quantity = &trimmed
+	}
+	if req.Category != nil {
+		trimmed := strings.TrimSpace(*req.Category)
+		if len(trimmed) > maxCategoryLen {
+			trimmed = trimmed[:maxCategoryLen]
+		}
+		req.Category = &trimmed
 	}
 	return ""
 }
