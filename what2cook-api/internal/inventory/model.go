@@ -34,6 +34,7 @@ type InventoryItem struct {
 	InventoryID uuid.UUID `gorm:"type:text;index;not null" json:"inventory_id"`
 	Name        string    `gorm:"size:80;not null" json:"name"`
 	Quantity    *string   `gorm:"size:40" json:"quantity"`
+	Category    *string   `gorm:"size:60;index" json:"category"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -60,10 +61,12 @@ type UpdateInventoryRequest struct {
 type CreateItemRequest struct {
 	Name     string  `json:"name"`
 	Quantity *string `json:"quantity"`
+	Category *string `json:"category"`
 }
 
 // UpdateItemRequest is the body for PATCH /inventories/:id/items/:itemId.
 type UpdateItemRequest struct {
 	Name     *string `json:"name"`
 	Quantity *string `json:"quantity"`
+	Category *string `json:"category"`
 }
