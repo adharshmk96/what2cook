@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"what2cook-api/internal/auth"
 	"what2cook-api/internal/inventory"
 )
 
@@ -16,15 +15,14 @@ var (
 	ErrEmptyImport   = errors.New("empty import file")
 )
 
-// Service handles user data export and import.
+// Service handles portable inventory export and import.
 type Service struct {
-	authRepo *auth.Repository
-	invRepo  *inventory.Repository
+	invRepo *inventory.Repository
 }
 
 // NewService creates a data service.
-func NewService(authRepo *auth.Repository, invRepo *inventory.Repository) *Service {
-	return &Service{authRepo: authRepo, invRepo: invRepo}
+func NewService(invRepo *inventory.Repository) *Service {
+	return &Service{invRepo: invRepo}
 }
 
 // Export returns file bytes, content type, and download filename.
@@ -52,7 +50,8 @@ func (s *Service) Export(userID uuid.UUID, format string) ([]byte, string, strin
 	}
 }
 
-// Import replaces the user's inventory data from a file.
+// Import merges inventories and items from a file into the current user's data.
+// Existing items (same name + category) are skipped; new items are inserted.
 func (s *Service) Import(userID uuid.UUID, raw []byte, format string) (*ImportResult, error) {
 	if len(raw) == 0 {
 		return nil, ErrEmptyImport
@@ -73,27 +72,24 @@ func (s *Service) Import(userID uuid.UUID, raw []byte, format string) (*ImportRe
 		return nil, err
 	}
 
-	imports, itemCount, err := snapshotToImports(snapshot)
+	imports, _, err := snapshotToImports(snapshot)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.invRepo.ReplaceAllForUser(userID, imports); err != nil {
+	merged, err := s.invRepo.MergeForUser(userID, imports)
+	if err != nil {
 		return nil, err
 	}
 
 	return &ImportResult{
-		Inventories: len(imports),
-		Items:       itemCount,
+		Inventories: merged.InventoriesCreated,
+		Items:       merged.ItemsInserted,
+		Skipped:     merged.ItemsSkipped,
 	}, nil
 }
 
 func (s *Service) loadSnapshot(userID uuid.UUID) (*ExportSnapshot, error) {
-	user, err := s.authRepo.FindUserByID(userID)
-	if err != nil {
-		return nil, err
-	}
-
 	inventories, err := s.invRepo.ListByUserWithItems(userID)
 	if err != nil {
 		return nil, err
@@ -106,11 +102,6 @@ func (s *Service) loadSnapshot(userID uuid.UUID) (*ExportSnapshot, error) {
 	}
 
 	snapshot := &ExportSnapshot{
-		User: UserExport{
-			Email:           user.Email,
-			EmailVerifiedAt: user.EmailVerifiedAt,
-			CreatedAt:       user.CreatedAt,
-		},
 		Inventories: make([]InventoryExport, 0, len(inventories)),
 	}
 

@@ -3,6 +3,7 @@ import { ApiError, getToken } from './client'
 export type ImportResult = {
   inventories: number
   items: number
+  skipped: number
 }
 
 export type ExportFormat = 'csv' | 'xlsx'
@@ -104,5 +105,9 @@ export async function importUserData(file: File): Promise<ImportResult> {
     throw new Error('Unexpected import response from server')
   }
 
-  return result
+  return {
+    inventories: result.inventories,
+    items: result.items,
+    skipped: typeof result.skipped === 'number' ? result.skipped : 0,
+  }
 }

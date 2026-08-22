@@ -14,6 +14,37 @@ func NormalizeInventoryName(raw string) string {
 	return name
 }
 
+// InventoryIdentity is a case-insensitive key for matching inventories by name.
+func InventoryIdentity(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+// ItemIdentity is a case-insensitive key for matching items by name + category.
+func ItemIdentity(name string, category *string) string {
+	return strings.ToLower(strings.TrimSpace(name)) + "\x00" + strings.ToLower(strings.TrimSpace(DerefString(category)))
+}
+
+// FilterNewItems returns items that do not already exist in the inventory.
+// Existing items are matched by name + category (case-insensitive). Duplicates
+// inside incoming are also skipped. Quantity is not part of identity.
+func FilterNewItems(existing []InventoryItem, incoming []ItemImport) (toInsert []ItemImport, skipped int) {
+	seen := make(map[string]struct{}, len(existing)+len(incoming))
+	for _, item := range existing {
+		seen[ItemIdentity(item.Name, item.Category)] = struct{}{}
+	}
+
+	for _, item := range incoming {
+		key := ItemIdentity(item.Name, item.Category)
+		if _, exists := seen[key]; exists {
+			skipped++
+			continue
+		}
+		seen[key] = struct{}{}
+		toInsert = append(toInsert, item)
+	}
+	return toInsert, skipped
+}
+
 // NormalizeItemImport validates and normalizes an imported item row.
 func NormalizeItemImport(name string, quantity, category *string) (*ItemImport, error) {
 	normalizedName := normalizeName(name)

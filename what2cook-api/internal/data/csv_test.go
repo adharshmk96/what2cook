@@ -1,23 +1,18 @@
 package data
 
 import (
+	"bytes"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/xuri/excelize/v2"
 )
 
 func TestCSVRoundTrip(t *testing.T) {
-	verified := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-	created := time.Date(2025, 12, 1, 8, 0, 0, 0, time.UTC)
 	qty := "500g"
 	cat := "Meat"
 
 	original := &ExportSnapshot{
-		User: UserExport{
-			Email:           "chef@example.com",
-			EmailVerifiedAt: &verified,
-			CreatedAt:       created,
-		},
 		Inventories: []InventoryExport{
 			{
 				Name:      "My Pantry",
@@ -33,20 +28,41 @@ func TestCSVRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encodeCSV: %v", err)
 	}
+	if strings.Contains(string(raw), "email") {
+		t.Fatalf("csv should not include user fields: %s", string(raw))
+	}
 
 	parsed, err := decodeCSV(raw)
 	if err != nil {
 		t.Fatalf("decodeCSV: %v", err)
 	}
 
-	if parsed.User.Email != original.User.Email {
-		t.Fatalf("email = %q, want %q", parsed.User.Email, original.User.Email)
-	}
 	if len(parsed.Inventories) != 1 {
 		t.Fatalf("inventories = %d, want 1", len(parsed.Inventories))
 	}
+	if parsed.Inventories[0].Name != "My Pantry" {
+		t.Fatalf("inventory name = %q", parsed.Inventories[0].Name)
+	}
 	if len(parsed.Inventories[0].Items) != 1 {
 		t.Fatalf("items = %d, want 1", len(parsed.Inventories[0].Items))
+	}
+	if parsed.Inventories[0].Items[0].Name != "chicken" {
+		t.Fatalf("item name = %q", parsed.Inventories[0].Items[0].Name)
+	}
+}
+
+func TestCSVDecodeIgnoresLegacyUserColumns(t *testing.T) {
+	raw := []byte(strings.Join([]string{
+		"email,email_verified_at,user_created_at,inventory_name,inventory_is_default,item_name,item_quantity,item_category",
+		"chef@example.com,2026-01-02T03:04:05Z,2025-12-01T08:00:00Z,My Pantry,true,chicken,500g,Meat",
+	}, "\n"))
+
+	parsed, err := decodeCSV(raw)
+	if err != nil {
+		t.Fatalf("decodeCSV: %v", err)
+	}
+	if len(parsed.Inventories) != 1 || len(parsed.Inventories[0].Items) != 1 {
+		t.Fatalf("parsed inventories=%d items=%d", len(parsed.Inventories), len(parsed.Inventories[0].Items))
 	}
 	if parsed.Inventories[0].Items[0].Name != "chicken" {
 		t.Fatalf("item name = %q", parsed.Inventories[0].Items[0].Name)
@@ -64,7 +80,6 @@ func TestDetectFormatFromFilename(t *testing.T) {
 
 func TestCSVHeaderPresent(t *testing.T) {
 	snapshot := &ExportSnapshot{
-		User: UserExport{Email: "a@b.com", CreatedAt: time.Now()},
 		Inventories: []InventoryExport{
 			{Name: "Pantry", IsDefault: true, Items: []ItemExport{}},
 		},
@@ -73,7 +88,56 @@ func TestCSVHeaderPresent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encodeCSV: %v", err)
 	}
+	header := strings.Split(strings.Split(string(raw), "\n")[0], ",")
+	for _, col := range header {
+		if strings.Contains(col, "email") || strings.Contains(col, "user_") {
+			t.Fatalf("csv header includes user field %q: %s", col, string(raw))
+		}
+	}
 	if !strings.Contains(string(raw), "inventory_name") {
 		t.Fatalf("csv missing header: %s", string(raw))
+	}
+}
+
+func TestExcelRoundTripOmitsUserSheet(t *testing.T) {
+	qty := "1kg"
+	cat := "Produce"
+	original := &ExportSnapshot{
+		Inventories: []InventoryExport{
+			{
+				Name:      "My Pantry",
+				IsDefault: true,
+				Items: []ItemExport{
+					{Name: "tomato", Quantity: &qty, Category: &cat},
+				},
+			},
+		},
+	}
+
+	raw, err := encodeExcel(original)
+	if err != nil {
+		t.Fatalf("encodeExcel: %v", err)
+	}
+
+	book, err := excelize.OpenReader(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatalf("open excel: %v", err)
+	}
+	defer book.Close()
+	for _, name := range book.GetSheetList() {
+		if strings.EqualFold(name, "User") {
+			t.Fatal("excel export should not include a User sheet")
+		}
+	}
+
+	parsed, err := decodeExcel(raw)
+	if err != nil {
+		t.Fatalf("decodeExcel: %v", err)
+	}
+	if len(parsed.Inventories) != 1 || len(parsed.Inventories[0].Items) != 1 {
+		t.Fatalf("parsed inventories=%d", len(parsed.Inventories))
+	}
+	if parsed.Inventories[0].Items[0].Name != "tomato" {
+		t.Fatalf("item name = %q", parsed.Inventories[0].Items[0].Name)
 	}
 }

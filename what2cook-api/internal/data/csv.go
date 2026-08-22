@@ -5,12 +5,11 @@ import (
 	"encoding/csv"
 	"fmt"
 	"strings"
-	"time"
 
 	"what2cook-api/internal/inventory"
 )
 
-const csvHeader = "email,email_verified_at,user_created_at,inventory_name,inventory_is_default,item_name,item_quantity,item_category"
+const csvHeader = "inventory_name,inventory_is_default,item_name,item_quantity,item_category"
 
 func encodeCSV(snapshot *ExportSnapshot) ([]byte, error) {
 	var buf bytes.Buffer
@@ -20,12 +19,8 @@ func encodeCSV(snapshot *ExportSnapshot) ([]byte, error) {
 		return nil, fmt.Errorf("write csv header: %w", err)
 	}
 
-	email := snapshot.User.Email
-	verified := formatTime(snapshot.User.EmailVerifiedAt)
-	created := snapshot.User.CreatedAt.UTC().Format(time.RFC3339)
-
 	if len(snapshot.Inventories) == 0 {
-		if err := w.Write([]string{email, verified, created, inventory.DefaultInventoryName, "true", "", "", ""}); err != nil {
+		if err := w.Write([]string{inventory.DefaultInventoryName, "true", "", "", ""}); err != nil {
 			return nil, fmt.Errorf("write csv row: %w", err)
 		}
 		w.Flush()
@@ -40,9 +35,6 @@ func encodeCSV(snapshot *ExportSnapshot) ([]byte, error) {
 
 		if len(inv.Items) == 0 {
 			if err := w.Write([]string{
-				email,
-				verified,
-				created,
 				inv.Name,
 				defaultFlag,
 				"",
@@ -56,9 +48,6 @@ func encodeCSV(snapshot *ExportSnapshot) ([]byte, error) {
 
 		for _, item := range inv.Items {
 			if err := w.Write([]string{
-				email,
-				verified,
-				created,
 				inv.Name,
 				defaultFlag,
 				item.Name,
@@ -101,33 +90,20 @@ func decodeCSV(raw []byte) (ExportSnapshot, error) {
 			continue
 		}
 
-		if snapshot.User.Email == "" {
-			snapshot.User.Email = cell(row, col["email"])
-			if verified := cell(row, col["email_verified_at"]); verified != "" {
-				if parsed, parseErr := time.Parse(time.RFC3339, verified); parseErr == nil {
-					snapshot.User.EmailVerifiedAt = &parsed
-				}
-			}
-			if created := cell(row, col["user_created_at"]); created != "" {
-				if parsed, parseErr := time.Parse(time.RFC3339, created); parseErr == nil {
-					snapshot.User.CreatedAt = parsed
-				}
-			}
-		}
-
 		invName := inventory.NormalizeInventoryName(cell(row, col["inventory_name"]))
 		if invName == "" {
 			invName = inventory.DefaultInventoryName
 		}
 
-		inv, ok := inventoryMap[invName]
+		key := inventory.InventoryIdentity(invName)
+		inv, ok := inventoryMap[key]
 		if !ok {
 			inv = &InventoryExport{
 				Name:      invName,
 				IsDefault: inventory.ParseBoolish(cell(row, col["inventory_is_default"])),
 				Items:     []ItemExport{},
 			}
-			inventoryMap[invName] = inv
+			inventoryMap[key] = inv
 		}
 
 		itemName := strings.TrimSpace(cell(row, col["item_name"]))
@@ -163,14 +139,11 @@ func normalizeHeader(header []string) []string {
 
 func mapHeaderColumns(header []string) map[string]int {
 	columns := map[string]int{
-		"email":                  -1,
-		"email_verified_at":      -1,
-		"user_created_at":        -1,
-		"inventory_name":         -1,
-		"inventory_is_default":   -1,
-		"item_name":              -1,
-		"item_quantity":          -1,
-		"item_category":          -1,
+		"inventory_name":       -1,
+		"inventory_is_default": -1,
+		"item_name":            -1,
+		"item_quantity":        -1,
+		"item_category":        -1,
 	}
 	for i, col := range header {
 		if _, ok := columns[col]; ok {
@@ -185,11 +158,4 @@ func cell(row []string, index int) string {
 		return ""
 	}
 	return row[index]
-}
-
-func formatTime(value *time.Time) string {
-	if value == nil {
-		return ""
-	}
-	return value.UTC().Format(time.RFC3339)
 }

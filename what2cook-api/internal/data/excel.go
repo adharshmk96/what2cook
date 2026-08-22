@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/xuri/excelize/v2"
 
@@ -12,7 +11,6 @@ import (
 )
 
 const (
-	sheetUser        = "User"
 	sheetInventories = "Inventories"
 	sheetItems       = "Items"
 )
@@ -22,20 +20,13 @@ func encodeExcel(snapshot *ExportSnapshot) ([]byte, error) {
 	defer f.Close()
 
 	defaultSheet := f.GetSheetName(0)
-	if err := f.SetSheetName(defaultSheet, sheetUser); err != nil {
-		return nil, fmt.Errorf("rename user sheet: %w", err)
-	}
-
-	if _, err := f.NewSheet(sheetInventories); err != nil {
-		return nil, fmt.Errorf("create inventories sheet: %w", err)
+	if err := f.SetSheetName(defaultSheet, sheetInventories); err != nil {
+		return nil, fmt.Errorf("rename inventories sheet: %w", err)
 	}
 	if _, err := f.NewSheet(sheetItems); err != nil {
 		return nil, fmt.Errorf("create items sheet: %w", err)
 	}
 
-	if err := writeUserSheet(f, snapshot.User); err != nil {
-		return nil, err
-	}
 	if err := writeInventoriesSheet(f, snapshot.Inventories); err != nil {
 		return nil, err
 	}
@@ -48,25 +39,6 @@ func encodeExcel(snapshot *ExportSnapshot) ([]byte, error) {
 		return nil, fmt.Errorf("write excel: %w", err)
 	}
 	return buf.Bytes(), nil
-}
-
-func writeUserSheet(f *excelize.File, user UserExport) error {
-	headers := []string{"email", "email_verified_at", "created_at"}
-	for i, header := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		if err := f.SetCellValue(sheetUser, cell, header); err != nil {
-			return err
-		}
-	}
-
-	values := []any{user.Email, formatTime(user.EmailVerifiedAt), user.CreatedAt.UTC().Format(time.RFC3339)}
-	for i, value := range values {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 2)
-		if err := f.SetCellValue(sheetUser, cell, value); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func writeInventoriesSheet(f *excelize.File, inventories []InventoryExport) error {
@@ -132,40 +104,28 @@ func decodeExcel(raw []byte) (ExportSnapshot, error) {
 	}
 	defer f.Close()
 
-	snapshot := ExportSnapshot{}
-	userRows, err := f.GetRows(sheetUser)
-	if err == nil && len(userRows) >= 2 {
-		snapshot.User = parseUserRows(userRows)
-	}
+	inventoryMap := make(map[string]*InventoryExport)
 
-	inventoryRows, err := f.GetRows(sheetInventories)
-	if err != nil || len(inventoryRows) < 2 {
-		return ExportSnapshot{}, fmt.Errorf("%w: missing Inventories sheet", ErrEmptyImport)
+	if inventoryRows, rowsErr := f.GetRows(sheetInventories); rowsErr == nil && len(inventoryRows) >= 2 {
+		for _, row := range inventoryRows[1:] {
+			if len(strings.TrimSpace(strings.Join(row, ""))) == 0 {
+				continue
+			}
+			name := inventory.NormalizeInventoryName(cellAt(row, 0))
+			if name == "" {
+				continue
+			}
+			inventoryMap[inventory.InventoryIdentity(name)] = &InventoryExport{
+				Name:      name,
+				IsDefault: inventory.ParseBoolish(cellAt(row, 1)),
+				Items:     []ItemExport{},
+			}
+		}
 	}
 
 	itemRows, err := f.GetRows(sheetItems)
 	if err != nil {
 		itemRows = nil
-	}
-
-	inventoryMap := make(map[string]*InventoryExport)
-	for _, row := range inventoryRows[1:] {
-		if len(strings.TrimSpace(strings.Join(row, ""))) == 0 {
-			continue
-		}
-		name := inventory.NormalizeInventoryName(cellAt(row, 0))
-		if name == "" {
-			continue
-		}
-		inventoryMap[name] = &InventoryExport{
-			Name:      name,
-			IsDefault: inventory.ParseBoolish(cellAt(row, 1)),
-			Items:     []ItemExport{},
-		}
-	}
-
-	if len(inventoryMap) == 0 {
-		return ExportSnapshot{}, ErrEmptyImport
 	}
 
 	if len(itemRows) >= 2 {
@@ -177,10 +137,11 @@ func decodeExcel(raw []byte) (ExportSnapshot, error) {
 			if invName == "" {
 				invName = inventory.DefaultInventoryName
 			}
-			inv, ok := inventoryMap[invName]
+			key := inventory.InventoryIdentity(invName)
+			inv, ok := inventoryMap[key]
 			if !ok {
 				inv = &InventoryExport{Name: invName, Items: []ItemExport{}}
-				inventoryMap[invName] = inv
+				inventoryMap[key] = inv
 			}
 			itemName := strings.TrimSpace(cellAt(row, 1))
 			if itemName == "" {
@@ -194,26 +155,16 @@ func decodeExcel(raw []byte) (ExportSnapshot, error) {
 		}
 	}
 
+	if len(inventoryMap) == 0 {
+		return ExportSnapshot{}, ErrEmptyImport
+	}
+
+	snapshot := ExportSnapshot{}
 	for _, inv := range inventoryMap {
 		snapshot.Inventories = append(snapshot.Inventories, *inv)
 	}
 
 	return snapshot, nil
-}
-
-func parseUserRows(rows [][]string) UserExport {
-	user := UserExport{Email: cellAt(rows[1], 0)}
-	if verified := cellAt(rows[1], 1); verified != "" {
-		if parsed, err := time.Parse(time.RFC3339, verified); err == nil {
-			user.EmailVerifiedAt = &parsed
-		}
-	}
-	if created := cellAt(rows[1], 2); created != "" {
-		if parsed, err := time.Parse(time.RFC3339, created); err == nil {
-			user.CreatedAt = parsed
-		}
-	}
-	return user
 }
 
 func cellAt(row []string, index int) string {

@@ -1,17 +1,7 @@
 package data
 
-import "time"
-
-// UserExport is the user profile section of an export.
-type UserExport struct {
-	Email           string     `json:"email"`
-	EmailVerifiedAt *time.Time `json:"email_verified_at"`
-	CreatedAt       time.Time  `json:"created_at"`
-}
-
-// ExportSnapshot is the full export payload for a user.
+// ExportSnapshot is a portable inventory dump. It is not tied to a user.
 type ExportSnapshot struct {
-	User        UserExport        `json:"user"`
 	Inventories []InventoryExport `json:"inventories"`
 }
 
@@ -29,8 +19,9 @@ type ItemExport struct {
 	Category *string `json:"category"`
 }
 
-// ImportResult summarizes an import operation.
+// ImportResult summarizes an import merge.
 type ImportResult struct {
 	Inventories int `json:"inventories"`
 	Items       int `json:"items"`
+	Skipped     int `json:"skipped"`
 }
