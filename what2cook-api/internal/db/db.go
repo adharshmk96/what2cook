@@ -11,6 +11,7 @@ import (
 
 	"what2cook-api/internal/auth"
 	"what2cook-api/internal/inventory"
+	"what2cook-api/internal/recipe"
 )
 
 // Open opens a SQLite database at path.
@@ -53,6 +54,9 @@ func AutoMigrate(gdb *gorm.DB) error {
 		&auth.EmailVerification{},
 		&inventory.Inventory{},
 		&inventory.InventoryItem{},
+		&recipe.SavedRecipe{},
+		&recipe.RecipeIngredient{},
+		&recipe.RecipeStep{},
 	); err != nil {
 		return fmt.Errorf("auto migrate: %w", err)
 	}

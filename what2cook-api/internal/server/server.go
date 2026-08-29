@@ -43,7 +43,9 @@ func New(cfg *config.Config, gdb *gorm.DB, mailer *mail.Mailer) (*Server, error)
 	authHandler := auth.NewHandler(authSvc)
 
 	recipeSvc := recipe.NewService()
-	recipeHandler := recipe.NewHandler(recipeSvc)
+	savedRecipeRepo := recipe.NewSavedRepository(gdb)
+	savedRecipeSvc := recipe.NewSavedService(savedRecipeRepo)
+	recipeHandler := recipe.NewHandler(recipeSvc, savedRecipeSvc)
 
 	invRepo := inventory.NewRepository(gdb)
 	invSvc := inventory.NewService(invRepo)
