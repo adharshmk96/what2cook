@@ -51,7 +51,7 @@ func New(cfg *config.Config, gdb *gorm.DB, mailer *mail.Mailer) (*Server, error)
 	invSvc := inventory.NewService(invRepo)
 	invHandler := inventory.NewHandler(invSvc)
 
-	dataSvc := data.NewService(repo, invRepo)
+	dataSvc := data.NewService(invRepo)
 	dataHandler := data.NewHandler(dataSvc)
 
 	api := r.Group("/api/v1")

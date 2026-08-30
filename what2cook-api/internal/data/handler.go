@@ -105,8 +105,6 @@ func (h *Handler) writeServiceError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, errorBody{Error: err.Error()})
 	case errors.Is(err, ErrEmptyImport):
 		c.JSON(http.StatusBadRequest, errorBody{Error: err.Error()})
-	case errors.Is(err, auth.ErrNotFound):
-		c.JSON(http.StatusNotFound, errorBody{Error: "not found"})
 	default:
 		log.Printf("data error: %v", err)
 		c.JSON(http.StatusInternalServerError, errorBody{Error: "internal error"})

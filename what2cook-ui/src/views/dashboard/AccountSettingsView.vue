@@ -141,6 +141,24 @@ function onImportFileChange(event: Event) {
   importFile.value = input.files?.[0] ?? null
 }
 
+function formatImportSuccess(result: { inventories: number; items: number; skipped: number }): string {
+  const parts: string[] = []
+  if (result.items > 0) {
+    parts.push(`added ${result.items} new ingredient${result.items === 1 ? '' : 's'}`)
+  }
+  if (result.skipped > 0) {
+    parts.push(`skipped ${result.skipped} already in your pantry`)
+  }
+  if (result.inventories > 0) {
+    parts.push(`created ${result.inventories} inventor${result.inventories === 1 ? 'y' : 'ies'}`)
+  }
+  if (parts.length === 0) {
+    return 'Nothing new to import — everything in the file already exists.'
+  }
+  const message = parts.join(', ')
+  return message.charAt(0).toUpperCase() + message.slice(1) + '.'
+}
+
 async function onImport() {
   importError.value = null
   importSuccess.value = ''
@@ -152,7 +170,7 @@ async function onImport() {
 
   if (
     !window.confirm(
-      'Import will replace all inventories and ingredients with the file contents. Continue?',
+      'Import will add missing ingredients. Items you already have will not be duplicated. Continue?',
     )
   ) {
     return
@@ -161,7 +179,7 @@ async function onImport() {
   importSubmitting.value = true
   try {
     const result = await importUserData(importFile.value)
-    importSuccess.value = `Imported ${result.items} ingredients across ${result.inventories} inventories.`
+    importSuccess.value = formatImportSuccess(result)
     importFile.value = null
     await inventory.loadDefault()
   } catch (err) {
@@ -220,7 +238,8 @@ async function onImport() {
       <section class="dash-panel" aria-labelledby="export-section-title">
         <h2 id="export-section-title" class="dash-section-title">Export data</h2>
         <p class="dash-panel__desc">
-          Download all your account and inventory data as CSV or Excel.
+          Download your inventories and ingredients as CSV or Excel. The file is
+          not tied to your account — another user can import it into theirs.
         </p>
         <div class="settings-data-actions">
           <button
@@ -249,8 +268,8 @@ async function onImport() {
       <section class="dash-panel" aria-labelledby="import-section-title">
         <h2 id="import-section-title" class="dash-section-title">Import data</h2>
         <p class="dash-panel__desc">
-          Upload a CSV or Excel file exported from what2cook. This replaces all
-          current inventories and ingredients.
+          Upload a CSV or Excel file from what2cook. New ingredients are added;
+          ones you already have are skipped.
         </p>
         <form class="auth-form settings-data-import" @submit.prevent="onImport">
           <label class="field">
