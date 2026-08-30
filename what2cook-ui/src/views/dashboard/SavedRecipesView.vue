@@ -131,6 +131,18 @@ function removeIngredientRow(index: number) {
   }
 }
 
+function renameIngredient(ingredient: FormIngredient, nextName: string) {
+  const oldName = ingredient.name.trim()
+  ingredient.name = nextName
+  const newName = nextName.trim()
+  if (!oldName || oldName === newName) return
+  for (const step of formSteps.value) {
+    step.ingredientsUsed = step.ingredientsUsed.map((used) =>
+      used.name === oldName ? { ...used, name: newName } : used,
+    )
+  }
+}
+
 function addStepRow() {
   formSteps.value = [...formSteps.value, { instruction: '', ingredientsUsed: [] }]
 }
@@ -440,11 +452,12 @@ store.load()
             <label class="field">
               <span class="sr-only">Ingredient name</span>
               <input
-                v-model="ingredient.name"
+                :value="ingredient.name"
                 type="text"
                 maxlength="80"
                 placeholder="Ingredient"
                 :disabled="store.saving"
+                @input="renameIngredient(ingredient, ($event.target as HTMLInputElement).value)"
               />
             </label>
             <label class="field">

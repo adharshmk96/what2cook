@@ -1,7 +1,9 @@
 package recipe
 
 import (
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
@@ -122,5 +124,33 @@ func TestSavedRecipeCRUD(t *testing.T) {
 	}
 	if _, err := repo.FindByIDForUser(rec.ID, userID); err != ErrNotFound {
 		t.Fatalf("expected ErrNotFound after delete, got %v", err)
+	}
+}
+
+func TestValidateSaveRecipeRejectsNegativeNutrition(t *testing.T) {
+	bad := -5.0
+	req := &SaveRecipeRequest{
+		Title:       "Test",
+		Ingredients: []IngredientInput{{Name: "Salt", Quantity: "1 tsp"}},
+		Steps:       []StepInput{{Instruction: "Mix."}},
+		Nutrition:   &Nutrition{Calories: &bad},
+	}
+	if msg := ValidateSaveRecipe(req); msg == "" {
+		t.Fatal("expected negative nutrition to be rejected")
+	}
+}
+
+func TestValidateSaveRecipeTruncatesOnRuneBoundary(t *testing.T) {
+	title := strings.Repeat("a", 117) + "日本語"
+	req := &SaveRecipeRequest{
+		Title:       title,
+		Ingredients: []IngredientInput{{Name: "Salt", Quantity: "1 tsp"}},
+		Steps:       []StepInput{{Instruction: "Mix."}},
+	}
+	if msg := ValidateSaveRecipe(req); msg != "" {
+		t.Fatalf("validate: %s", msg)
+	}
+	if !utf8.ValidString(req.Title) {
+		t.Fatalf("title is not valid UTF-8 after truncation: %q", req.Title)
 	}
 }

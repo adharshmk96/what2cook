@@ -69,14 +69,10 @@ func ValidateSaveRecipe(req *SaveRecipeRequest) string {
 	if req.Title == "" {
 		return "title is required"
 	}
-	if len(req.Title) > maxTitleLen {
-		req.Title = req.Title[:maxTitleLen]
-	}
+	req.Title = truncate(req.Title, maxTitleLen)
 
 	req.Summary = strings.TrimSpace(req.Summary)
-	if len(req.Summary) > maxSummaryLen {
-		req.Summary = req.Summary[:maxSummaryLen]
-	}
+	req.Summary = truncate(req.Summary, maxSummaryLen)
 
 	if req.Minutes < 0 {
 		return "minutes cannot be negative"
@@ -96,13 +92,9 @@ func ValidateSaveRecipe(req *SaveRecipeRequest) string {
 		if req.Ingredients[i].Name == "" {
 			return "ingredient name is required"
 		}
-		if len(req.Ingredients[i].Name) > maxNameLen {
-			req.Ingredients[i].Name = req.Ingredients[i].Name[:maxNameLen]
-		}
+		req.Ingredients[i].Name = truncate(req.Ingredients[i].Name, maxNameLen)
 		req.Ingredients[i].Quantity = strings.TrimSpace(req.Ingredients[i].Quantity)
-		if len(req.Ingredients[i].Quantity) > maxQuantityLen {
-			req.Ingredients[i].Quantity = req.Ingredients[i].Quantity[:maxQuantityLen]
-		}
+		req.Ingredients[i].Quantity = truncate(req.Ingredients[i].Quantity, maxQuantityLen)
 	}
 
 	if len(req.Steps) == 0 {
@@ -116,29 +108,58 @@ func ValidateSaveRecipe(req *SaveRecipeRequest) string {
 		if req.Steps[i].Instruction == "" {
 			return "step instruction is required"
 		}
-		if len(req.Steps[i].Instruction) > maxInstructionLen {
-			req.Steps[i].Instruction = req.Steps[i].Instruction[:maxInstructionLen]
-		}
+		req.Steps[i].Instruction = truncate(req.Steps[i].Instruction, maxInstructionLen)
 		for j := range req.Steps[i].IngredientsUsed {
 			req.Steps[i].IngredientsUsed[j].Name = strings.TrimSpace(req.Steps[i].IngredientsUsed[j].Name)
-			if len(req.Steps[i].IngredientsUsed[j].Name) > maxNameLen {
-				req.Steps[i].IngredientsUsed[j].Name = req.Steps[i].IngredientsUsed[j].Name[:maxNameLen]
-			}
+			req.Steps[i].IngredientsUsed[j].Name = truncate(req.Steps[i].IngredientsUsed[j].Name, maxNameLen)
 			req.Steps[i].IngredientsUsed[j].Quantity = strings.TrimSpace(req.Steps[i].IngredientsUsed[j].Quantity)
-			if len(req.Steps[i].IngredientsUsed[j].Quantity) > maxQuantityLen {
-				req.Steps[i].IngredientsUsed[j].Quantity = req.Steps[i].IngredientsUsed[j].Quantity[:maxQuantityLen]
-			}
+			req.Steps[i].IngredientsUsed[j].Quantity = truncate(req.Steps[i].IngredientsUsed[j].Quantity, maxQuantityLen)
 		}
 	}
 
-	if req.Nutrition != nil && isEmptyNutrition(req.Nutrition) {
-		req.Nutrition = nil
+	if req.Nutrition != nil {
+		if msg := validateNutrition(req.Nutrition); msg != "" {
+			return msg
+		}
+		if isEmptyNutrition(req.Nutrition) {
+			req.Nutrition = nil
+		}
 	}
 
 	return ""
 }
 
+// truncate cuts s to at most max runes, never splitting a multi-byte rune.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max])
+}
+
 func isEmptyNutrition(n *Nutrition) bool {
 	return n.Calories == nil && n.ProteinG == nil && n.CarbsG == nil &&
 		n.FatG == nil && n.FiberG == nil && n.SugarG == nil && n.SodiumMg == nil
+}
+
+func validateNutrition(n *Nutrition) string {
+	fields := map[string]*float64{
+		"calories": n.Calories,
+		"protein":  n.ProteinG,
+		"carbs":    n.CarbsG,
+		"fat":      n.FatG,
+		"fiber":    n.FiberG,
+		"sugar":    n.SugarG,
+		"sodium":   n.SodiumMg,
+	}
+	for name, value := range fields {
+		if value != nil && *value < 0 {
+			return fmt.Sprintf("nutrition %s cannot be negative", name)
+		}
+	}
+	return ""
 }
