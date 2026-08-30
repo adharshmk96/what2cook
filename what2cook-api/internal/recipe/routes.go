@@ -12,5 +12,10 @@ func RegisterRoutes(api *gin.RouterGroup, h *Handler, authSvc *auth.Service) {
 	group.Use(auth.Middleware(authSvc))
 	{
 		group.POST("/generate", h.Generate)
+		group.GET("", h.List)
+		group.POST("", h.Create)
+		group.GET("/:id", h.Get)
+		group.PUT("/:id", h.Update)
+		group.DELETE("/:id", h.Delete)
 	}
 }
